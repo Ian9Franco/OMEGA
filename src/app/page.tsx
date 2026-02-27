@@ -332,9 +332,9 @@ export default function Home() {
 
   const monthLabels = ["Marzo 2026", "Abril 2026", "Mayo 2026"];
   const [savingsRescue, setSavingsRescue] = useState([
-      { active: false, amount: 0, target: 'visa' },
-      { active: false, amount: 0, target: 'visa' },
-      { active: false, amount: 0, target: 'visa' }
+      { active: false, visa: 0, master: 0 },
+      { active: false, visa: 0, master: 0 },
+      { active: false, visa: 0, master: 0 }
   ]);
   const [mercadoPagoGastos, setMercadoPagoGastos] = useState<number[]>([221403, 221403, 221403]);
   
@@ -415,28 +415,52 @@ export default function Home() {
         }
         totalInterestPaid += totalMonthInterest;
 
-        // 2. Execute Savings Rescue Injection (Cascades across all debt to rescue emergency situations)
+        // 2. Execute Savings Rescue Injection (Allows precise injections to both cards)
         if (i < 3) { 
             const rescue = savingsRescue[i];
-            if (rescue.active && rescue.amount > 0) {
-                injectionThisMonth = Math.min(rescue.amount, currentSavings);
-                currentSavings -= injectionThisMonth;
-                currentSelfDebt += injectionThisMonth;
+            if (rescue.active) {
+                // Determine how much is requested mapping to current savings cap
+                const totalRequested = rescue.visa + rescue.master;
+                const actualInjectionAvailable = Math.min(totalRequested, currentSavings);
                 
-                let remainingInjectionAmount = injectionThisMonth;
-                const targetDebt = currentDebts.find(d => d.id === rescue.target);
-                
-                if (targetDebt && targetDebt.amount > 0) {
-                     const payDown = Math.min(remainingInjectionAmount, targetDebt.amount);
-                     targetDebt.amount -= payDown;
-                     remainingInjectionAmount -= payDown;
-                }
-                
-                // Return unused injection back to savings
-                if (remainingInjectionAmount > 0) {
-                    currentSavings += remainingInjectionAmount;
-                    currentSelfDebt -= remainingInjectionAmount;
-                    injectionThisMonth -= remainingInjectionAmount;
+                if (actualInjectionAvailable > 0) {
+                     // Distribute the available injection proportionally or exactly
+                     const visaShare = totalRequested > 0 ? (rescue.visa / totalRequested) : 0;
+                     const masterShare = totalRequested > 0 ? (rescue.master / totalRequested) : 0;
+                     
+                     const visaInjection = actualInjectionAvailable * visaShare;
+                     const masterInjection = actualInjectionAvailable * masterShare;
+                     
+                     currentSavings -= actualInjectionAvailable;
+                     currentSelfDebt += actualInjectionAvailable;
+                     injectionThisMonth = actualInjectionAvailable;
+                     
+                     let totalUnused = 0;
+                     
+                     const visaDebt = currentDebts.find(d => d.id === 'visa');
+                     if (visaDebt && visaDebt.amount > 0) {
+                          const payDown = Math.min(visaInjection, visaDebt.amount);
+                          visaDebt.amount -= payDown;
+                          totalUnused += (visaInjection - payDown);
+                     } else {
+                          totalUnused += visaInjection;
+                     }
+                     
+                     const masterDebt = currentDebts.find(d => d.id === 'master');
+                     if (masterDebt && masterDebt.amount > 0) {
+                          const payDown = Math.min(masterInjection, masterDebt.amount);
+                          masterDebt.amount -= payDown;
+                          totalUnused += (masterInjection - payDown);
+                     } else {
+                          totalUnused += masterInjection;
+                     }
+                     
+                     // Return unused injection back to savings
+                     if (totalUnused > 0) {
+                         currentSavings += totalUnused;
+                         currentSelfDebt -= totalUnused;
+                         injectionThisMonth -= totalUnused;
+                     }
                 }
             }
         }
@@ -723,30 +747,26 @@ export default function Home() {
                                                 </div>
 
                                                 {savingsRescue[mIdx].active && (
-                                                    <div className="bg-dashboard-bg/50 p-3 rounded-xl border border-white/5 space-y-3 fade-in">
-                                                        <div className="flex gap-2 text-[10px]">
-                                                            <button 
-                                                                onClick={() => updateSavingsRescue(mIdx, 'target', 'visa')}
-                                                                className={`flex-1 py-1.5 rounded-md border text-center transition-colors ${savingsRescue[mIdx].target === 'visa' ? 'border-accent-mint text-accent-mint bg-accent-mint/10' : 'border-white/10 text-text-tertiary shadow-none'}`}
-                                                            >
-                                                                A Visa
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => updateSavingsRescue(mIdx, 'target', 'master')}
-                                                                className={`flex-1 py-1.5 rounded-md border text-center transition-colors ${savingsRescue[mIdx].target === 'master' ? 'border-accent-mint text-accent-mint bg-accent-mint/10' : 'border-white/10 text-text-tertiary shadow-none'}`}
-                                                            >
-                                                                A Mastercard
-                                                            </button>
-                                                        </div>
-
+                                                    <div className="bg-dashboard-bg/50 p-3 rounded-xl border border-white/5 space-y-4 fade-in">
                                                         <div>
                                                             <div className="flex justify-between text-[10px] mb-1">
-                                                                <span className="text-text-secondary">Capital a Rescatar / Inyectar</span>
-                                                                <span className="font-semibold text-accent-mint">{formatCurrency(savingsRescue[mIdx].amount)}</span>
+                                                                <span className="text-text-secondary flex items-center gap-1"><CreditCard size={10} className="text-red-400"/> A Visa</span>
+                                                                <span className="font-semibold text-accent-mint">{formatCurrency(savingsRescue[mIdx].visa)}</span>
                                                             </div>
                                                             <input 
-                                                                type="range" min="0" max="2000000" step="50000" 
-                                                                value={savingsRescue[mIdx].amount} onChange={(e) => updateSavingsRescue(mIdx, 'amount', Number(e.target.value))}
+                                                                type="range" min="0" max="2000000" step="10000" 
+                                                                value={savingsRescue[mIdx].visa} onChange={(e) => updateSavingsRescue(mIdx, 'visa', Number(e.target.value))}
+                                                                className="w-full h-1 accent-accent-mint bg-card-bg rounded-lg appearance-none cursor-pointer"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex justify-between text-[10px] mb-1">
+                                                                <span className="text-text-secondary flex items-center gap-1"><CreditCard size={10} className="text-red-400"/> A Mastercard</span>
+                                                                <span className="font-semibold text-accent-mint">{formatCurrency(savingsRescue[mIdx].master)}</span>
+                                                            </div>
+                                                            <input 
+                                                                type="range" min="0" max="2000000" step="10000" 
+                                                                value={savingsRescue[mIdx].master} onChange={(e) => updateSavingsRescue(mIdx, 'master', Number(e.target.value))}
                                                                 className="w-full h-1 accent-accent-mint bg-card-bg rounded-lg appearance-none cursor-pointer"
                                                             />
                                                         </div>
