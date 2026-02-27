@@ -24,13 +24,12 @@ const INITIAL_DATA = {
   sueldo: 800000,
   ahorro: 4909900,
   deudas: [
-      { id: 'mp', name: 'Mercado Pago', amount: 221400.00, type: 'app', order: 1 },
       { id: 'visa', name: 'Visa Gold', amount: 1243086.57, type: 'card', order: 2 },
       { id: 'master', name: 'Mastercard Gold', amount: 1466525.12, type: 'card', order: 3 }
   ],
   gastos: {
       expensas: 45000,
-      vida: 200000
+      fijosExtras: 23597
   }
 };
 
@@ -170,6 +169,9 @@ const FlujoMensualView = ({ projectionData }: { projectionData: any }) => {
     const month0 = projectionData.months[0]; // Marzo 2026 data
     const totalSueldo = INITIAL_DATA.sueldo;
     const isCrisis = month0.livingCashFlow < 0;
+    
+    // We now use the calculated snapshot of the month's total fixed expenses
+    const currentFixedExps = month0.gastosFijosTotales;
 
     return (
         <div className="space-y-6 fade-in h-full flex flex-col">
@@ -188,14 +190,14 @@ const FlujoMensualView = ({ projectionData }: { projectionData: any }) => {
                          style={{
                              background: `conic-gradient(
                                 transparent 0% ${(month0.bankPaid / totalSueldo)*100}%,
-                                #FEF08A ${(month0.bankPaid / totalSueldo)*100}% ${((month0.bankPaid + INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.vida) / totalSueldo)*100}%,
-                                transparent ${((month0.bankPaid + INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.vida) / totalSueldo)*100}% 100%)`
+                                #A7F3D0 ${(month0.bankPaid / totalSueldo)*100}% ${((month0.bankPaid + currentFixedExps) / totalSueldo)*100}%,
+                                transparent ${((month0.bankPaid + currentFixedExps) / totalSueldo)*100}% 100%)`
                          }}></div>
                     <div className="absolute inset-0 rounded-full" 
                          style={{
                              background: `conic-gradient(
-                                transparent 0% ${((month0.bankPaid + INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.vida) / totalSueldo)*100}%,
-                                ${isCrisis ? '#FECACA' : '#A7F3D0'} ${((month0.bankPaid + INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.vida) / totalSueldo)*100}% 100%)`
+                                transparent 0% ${((month0.bankPaid + currentFixedExps) / totalSueldo)*100}%,
+                                ${isCrisis ? '#FECACA' : '#FEF08A'} ${((month0.bankPaid + currentFixedExps) / totalSueldo)*100}% 100%)`
                          }}></div>
                     
                     {/* Inner hole */}
@@ -213,14 +215,14 @@ const FlujoMensualView = ({ projectionData }: { projectionData: any }) => {
                         <div className="text-xl font-bold text-accent-blue">{formatCurrency(month0.bankPaid)}</div>
                         <p className="text-[10px] text-text-tertiary mt-2">Monto del sueldo absorbido por las tarjetas de crédito para cubrir intereses y capital este mes.</p>
                      </div>
-                     <div className="dashboard-card-light p-4 border-l-2 border-l-accent-yellow">
+                     <div className="dashboard-card-light p-4 border-l-2 border-l-accent-mint">
                         <h4 className="text-xs text-text-secondary flex justify-between items-center mb-1">
-                            Obligación Vida Fija <span className="font-bold">{(((INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.vida) / totalSueldo)*100).toFixed(0)}%</span>
+                            Obligación Vida Fija <span className="font-bold">{((currentFixedExps / totalSueldo)*100).toFixed(0)}%</span>
                         </h4>
-                        <div className="text-xl font-bold text-accent-yellow">{formatCurrency(INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.vida)}</div>
-                        <p className="text-[10px] text-text-tertiary mt-2">Presupuesto inamovible (Expensas: {formatCurrency(INITIAL_DATA.gastos.expensas)}, Vida: {formatCurrency(INITIAL_DATA.gastos.vida)}).</p>
+                        <div className="text-xl font-bold text-accent-mint">{formatCurrency(currentFixedExps)}</div>
+                        <p className="text-[10px] text-text-tertiary mt-2">Presupuesto en App MP y Vida (MP Estimado: {formatCurrency(month0.mercadoPagoGasto)}, Fijos: {formatCurrency(INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras)}).</p>
                      </div>
-                     <div className={`dashboard-card-light p-4 border-l-2 md:col-span-2 ${isCrisis ? 'border-l-accent-salmon' : 'border-l-accent-mint'}`}>
+                     <div className={`dashboard-card-light p-4 border-l-2 md:col-span-2 ${isCrisis ? 'border-l-accent-salmon' : 'border-l-accent-yellow'}`}>
                         <h4 className="text-xs text-text-secondary flex justify-between items-center mb-1">
                             Líquido Restante / Sobrante <span className="font-bold">{((Math.max(0, month0.livingCashFlow) / totalSueldo)*100).toFixed(0)}%</span>
                         </h4>
@@ -325,17 +327,15 @@ const ProyeccionesView = ({ projectionData }: { projectionData: any }) => {
 export default function Home() {
   const [activeView, setActiveView] = useState('dashboard');
 
-  const gastosFijosTotal = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.vida;
-  const maxAvailableSalaryForDebt = INITIAL_DATA.sueldo - gastosFijosTotal;
-
   const monthLabels = ["Marzo 2026", "Abril 2026", "Mayo 2026"];
   const [savingsInjections, setSavingsInjections] = useState<number[]>([0, 0, 0]);
+  const [mercadoPagoGastos, setMercadoPagoGastos] = useState<number[]>([221403, 221403, 221403]);
   
   // Specific allocations per card per month instead of a global slider
   const [salaryAllocations, setSalaryAllocations] = useState([
-      { mp: 221403, visa: 100000, master: 100000 },
-      { mp: 100000, visa: 100000, master: 100000 },
-      { mp: 100000, visa: 100000, master: 100000 }
+      { visa: 100000, master: 100000 },
+      { visa: 100000, master: 100000 },
+      { visa: 100000, master: 100000 }
   ]);
 
   const updateSavings = (idx: number, val: number) => {
@@ -344,7 +344,13 @@ export default function Home() {
     setSavingsInjections(next);
   };
 
-  const updateAllocation = (monthIdx: number, cardId: 'mp' | 'visa' | 'master', val: number) => {
+  const updateMercadoPago = (idx: number, val: number) => {
+    const next = [...mercadoPagoGastos];
+    next[idx] = val;
+    setMercadoPagoGastos(next);
+  };
+
+  const updateAllocation = (monthIdx: number, cardId: 'visa' | 'master', val: number) => {
     const next = [...salaryAllocations];
     next[monthIdx] = { ...next[monthIdx], [cardId]: val };
     setSalaryAllocations(next);
@@ -441,7 +447,9 @@ export default function Home() {
         const currentTotalDebt = currentDebts.reduce((acc, d) => acc + d.amount, 0);
 
         // Calculate if we have money left over in the budget capable of replenishing the "Self-Debt"
-        const totalAllocatedToBank = currentMonthAllocs.mp + currentMonthAllocs.visa + currentMonthAllocs.master;
+        const currentMP = i < 3 ? mercadoPagoGastos[i] : mercadoPagoGastos[2];
+        const gastosFijosTotalesThisMonth = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras + currentMP;
+        const totalAllocatedToBank = currentMonthAllocs.visa + currentMonthAllocs.master;
         const leftoverReservedBudget = totalAllocatedToBank - totalBankPaid; // Occurs if the slider was set high but debt was completely erased.
 
         if (leftoverReservedBudget > 0 && currentSelfDebt > 0) {
@@ -465,12 +473,14 @@ export default function Home() {
             selfDebt: currentSelfDebt,
             savingsEnd: currentSavings,
             // CRITICAL FIX: Base living cash flow relies heavily on the constraints fixed above
-            livingCashFlow: INITIAL_DATA.sueldo - gastosFijosTotal - totalAllocatedToBank
+            livingCashFlow: INITIAL_DATA.sueldo - gastosFijosTotalesThisMonth - totalAllocatedToBank,
+            gastosFijosTotales: gastosFijosTotalesThisMonth,
+            mercadoPagoGasto: currentMP 
         });
     }
 
     return { months, totalInterestPaid, totalYieldEarned, currentSelfDebt, finalBankDebt: months[3].bankDebtEnd, finalSavings: currentSavings };
-  }, [savingsInjections, salaryAllocations, monthLabels, gastosFijosTotal]);
+  }, [savingsInjections, salaryAllocations, mercadoPagoGastos, monthLabels]);
 
   const pureInterestStart = useMemo(() => {
     return INITIAL_DATA.deudas.reduce((totalAcc, debt) => {
@@ -555,17 +565,17 @@ export default function Home() {
                         <div className="dashboard-card p-4 flex flex-col justify-between bg-card-bg-light border-accent-salmon/10 border">
                             <div className="flex items-center gap-2 text-xs text-text-secondary mb-2">
                                 <WalletCards size={14} className="text-accent-blue" />
-                                Obligación de Vida (Fijo)
-                                <Tooltip content="Gastos inamovibles restados de tu sueldo base antes de permitirte destinar presupuesto a tus deudas.">
+                                Obligación de Vida Fija Promedio
+                                <Tooltip content="Gastos inamovibles restados de tu sueldo base antes de permitirte destinar presupuesto a tus deudas. Calculado en base al Mes 1 (Marzo).">
                                     <Info size={12} className="text-text-tertiary hover:text-white" />
                                 </Tooltip>
                             </div>
                             <div className="text-2xl text-accent-blue font-bold mb-1.5">
-                                {formatCurrency(gastosFijosTotal)}
+                                {formatCurrency(INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[0])}
                             </div>
                             <div className="text-[10px] text-text-secondary flex justify-between w-full border-t border-white/5 pt-1.5">
-                                <span>Max. P/Deuda Disp:</span>
-                                <span className="text-white font-semibold">{formatCurrency(maxAvailableSalaryForDebt)}</span>
+                                <span>Max. P/Deuda Disp (Marzo):</span>
+                                <span className="text-white font-semibold">{formatCurrency(INITIAL_DATA.sueldo - (INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[0]))}</span>
                             </div>
                         </div>
 
@@ -586,8 +596,9 @@ export default function Home() {
                                 {[0, 1, 2].map((mIdx) => {
                                     const monthData = projection.months[mIdx];
                                     const allocs = salaryAllocations[mIdx];
-                                    const totalAllocatedThisMonth = allocs.mp + allocs.visa + allocs.master;
-                                    const availableBudgetRemaining = maxAvailableSalaryForDebt - totalAllocatedThisMonth;
+                                    const maxAvailableForDebtThisMonth = INITIAL_DATA.sueldo - monthData.gastosFijosTotales;
+                                    const totalAllocatedThisMonth = allocs.visa + allocs.master;
+                                    const availableBudgetRemaining = maxAvailableForDebtThisMonth - totalAllocatedThisMonth;
                                     const isBudgetExceeded = availableBudgetRemaining < 0;
 
                                     return (
@@ -596,28 +607,31 @@ export default function Home() {
                                                 {monthLabels[mIdx]}
                                             </h3>
                                             
+                                            {/* Mercado Pago Livings Expense Slider */}
+                                            <div className="mt-4 pb-3 border-b border-white/5 space-y-4">
+                                                <div>
+                                                    <div className="flex justify-between text-[11px] mb-1 font-semibold">
+                                                        <span className="text-text-secondary flex items-center gap-1"><Smartphone size={12} className="text-accent-mint"/> Estimado Mercado Pago (Vida)</span>
+                                                        <span className="text-accent-mint">{formatCurrency(mercadoPagoGastos[mIdx])}</span>
+                                                    </div>
+                                                    <input 
+                                                        type="range" min={0} max={600000} step="1000" 
+                                                        value={mercadoPagoGastos[mIdx]} onChange={(e) => updateMercadoPago(mIdx, Number(e.target.value))}
+                                                        className="w-full accent-accent-mint h-1.5 bg-card-bg rounded-lg appearance-none cursor-pointer"
+                                                    />
+                                                    <div className="text-[9px] text-text-tertiary mt-1">Gasto de vida fluctuante que querés presupuestar para este mes. Modifica cuánto te queda libre para pagar las tarjetas.</div>
+                                                </div>
+                                            </div>
+
                                             {/* Specific Debt Sliders */}
                                             <div className="space-y-4 flex-1">
                                                 <div>
-                                                    <div className="flex justify-between text-[10px] mb-1">
-                                                        <span className="text-text-secondary flex items-center gap-1"><Smartphone size={10} className="text-accent-blue"/> Pago Mercado Pago</span>
-                                                        <span className="font-semibold text-accent-blue">{formatCurrency(allocs.mp)}</span>
-                                                    </div>
-                                                    <input 
-                                                        type="range" min={Math.round(monthData.requiredMinimums.mp || 0)} max={Math.min(INITIAL_DATA.deudas[0].amount * 1.5, maxAvailableSalaryForDebt)} step="1000" 
-                                                        value={Math.max(allocs.mp, monthData.requiredMinimums.mp || 0)} onChange={(e) => updateAllocation(mIdx, 'mp', Number(e.target.value))}
-                                                        className="w-full accent-accent-blue h-1 bg-card-bg rounded-lg appearance-none cursor-pointer"
-                                                    />
-                                                    <div className="text-[9px] text-text-tertiary mt-1">Mínimo legal: {formatCurrency(monthData.requiredMinimums.mp || 0)}</div>
-                                                </div>
-
-                                                <div>
-                                                    <div className="flex justify-between text-[10px] mb-1">
+                                                    <div className="flex justify-between text-[10px] mb-1 mt-4">
                                                         <span className="text-text-secondary flex items-center gap-1"><CreditCard size={10} className="text-red-400"/> Pago Visa</span>
                                                         <span className="font-semibold text-white">{formatCurrency(allocs.visa)}</span>
                                                     </div>
                                                     <input 
-                                                        type="range" min={Math.round(monthData.requiredMinimums.visa || 0)} max={maxAvailableSalaryForDebt} step="5000" 
+                                                        type="range" min={Math.round(monthData.requiredMinimums.visa || 0)} max={maxAvailableForDebtThisMonth} step="5000" 
                                                         value={Math.max(allocs.visa, monthData.requiredMinimums.visa || 0)} onChange={(e) => updateAllocation(mIdx, 'visa', Number(e.target.value))}
                                                         className="w-full accent-white h-1 bg-card-bg rounded-lg appearance-none cursor-pointer"
                                                     />
@@ -630,7 +644,7 @@ export default function Home() {
                                                         <span className="font-semibold text-white">{formatCurrency(allocs.master)}</span>
                                                     </div>
                                                     <input 
-                                                        type="range" min={Math.round(monthData.requiredMinimums.master || 0)} max={maxAvailableSalaryForDebt} step="5000" 
+                                                        type="range" min={Math.round(monthData.requiredMinimums.master || 0)} max={maxAvailableForDebtThisMonth} step="5000" 
                                                         value={Math.max(allocs.master, monthData.requiredMinimums.master || 0)} onChange={(e) => updateAllocation(mIdx, 'master', Number(e.target.value))}
                                                         className="w-full accent-white h-1 bg-card-bg rounded-lg appearance-none cursor-pointer"
                                                     />
@@ -659,12 +673,12 @@ export default function Home() {
                                                         <span className="text-white font-medium">{formatCurrency(INITIAL_DATA.sueldo)}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center text-[10px]">
-                                                        <span className="text-accent-yellow/80">(-) Gastos Fijos (Vida + Exp)</span>
-                                                        <span className="text-accent-yellow/80">-{formatCurrency(gastosFijosTotal)}</span>
+                                                        <span className="text-accent-mint/80">(-) Vida/MP + Fijos</span>
+                                                        <span className="text-accent-mint/80">-{formatCurrency(monthData.gastosFijosTotales)}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center text-[10px]">
-                                                        <span className="text-accent-blue/80">(-) Pago Tarjetas Asignado</span>
-                                                        <span className="text-accent-blue/80">-{formatCurrency(totalAllocatedThisMonth)}</span>
+                                                        <span className="text-white/80">(-) Deuda Tarjetas</span>
+                                                        <span className="text-white/80">-{formatCurrency(totalAllocatedThisMonth)}</span>
                                                     </div>
                                                 </div>
                                                 
