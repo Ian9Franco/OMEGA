@@ -657,16 +657,18 @@ export default function Home() {
                  gSavings += (INITIAL_DATA.sueldo - fijos);
             }
         }
-        return { gTotalInterest, gMonthsToGoal };
+        return { gTotalInterest, gMonthsToGoal, gNetWealthJune: gSavings - gDebts.reduce((a, b) => a + b.amount, 0) };
     };
 
     const ghost = runGhostProjection();
     const currentMonthsToGoal = monthsToGoal || 4; // Use 4 as base if goal met in June
     const totalCurrentInterest = totalInterestPaid;
+    const currentNetWealthJune = finalSavings - finalBankDebt;
     
     const comparison = {
         interestSaved: Math.max(0, totalCurrentInterest - ghost.gTotalInterest),
         monthsFaster: Math.max(0, currentMonthsToGoal - ghost.gMonthsToGoal),
+        netWealthDiff: ghost.gNetWealthJune - currentNetWealthJune,
         isOptimal: totalCurrentInterest <= ghost.gTotalInterest + 1000 && (monthsToGoal || 0) <= ghost.gMonthsToGoal
     };
 
@@ -802,8 +804,10 @@ export default function Home() {
                                      <div>
                                          <h3 className="text-accent-mint font-bold text-sm">¡Hay un Plan Superador disponible!</h3>
                                          <p className="text-[11px] text-text-secondary leading-tight mt-0.5">
-                                             Adoptando el <span className="text-white font-semibold">Plan Reset</span> ahorrarías <span className="text-accent-mint font-bold">{formatCurrency(projection.comparison.interestSaved)}</span> en intereses 
+                                             Con el <span className="text-white font-semibold">Plan Reset</span> ahorrarías <span className="text-accent-mint font-bold">{formatCurrency(projection.comparison.interestSaved)}</span> en intereses 
                                              {projection.comparison.monthsFaster > 0 && <span> y llegarías <span className="text-accent-mint font-bold">{projection.comparison.monthsFaster} meses antes</span> a tu meta</span>}.
+                                             <br />
+                                             <span className="text-white font-semibold">Tendrías {formatCurrency(projection.comparison.netWealthDiff)} más de Riqueza Real</span> en Junio.
                                          </p>
                                      </div>
                                  </div>
