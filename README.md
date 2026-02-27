@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OMEGA: Simulador Financiero Integral 📈
 
-## Getting Started
+Esta aplicación es un potente simulador financiero y gestor de gastos personales (Single Page Application) desarrollado en Next.js. El objetivo principal de **OMEGA** es proyectar trayectorias de deudas (tarjetas de crédito, préstamos) y activos líquidos (ahorros e inversiones) frente a hábitos de consumo dinámicos, calculando el interés compuesto mensualmente y mostrando el camino óptimo hacia la libertad financiera.
 
-First, run the development server:
+## Características Principales 🚀
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Proyecciones Precisas con Interés Compuesto**: Calcula exactamente cómo impactan las tasas (TEM + IVA + Sellos + IIBB) en tu capital si decides refinanciar o hacer pagos parciales.
+- **Control de Inyecciones Granulares ("Rescates")**: Asigna rescates de ahorros pasivos a deudas específicas (Visa, Mastercard, etc.) con selectores precisos, permitiendo apalancar múltiples tarjetas en el mismo mes.
+- **Límites de Presupuesto Dinámicos**: Los controles de pago de deuda están restringidos matemáticamente por el capital disponible (`Sueldo - Gastos Fijos - Gasto de Vida`).
+- **Vista de Flujo Mensual en Tiempo Real**: Visualizaciones con gráficos de torta dinámicos calculados vía CSS puro. Muestra qué porción del sueldo alimenta las deudas, sobrevive o se pierde.
+- **Motor Predictivo Oculto**: Si las proyecciones a 3-4 meses de la vista principal no alcanzan la meta de reducción de deuda, un algoritmo oculto simulará la estrategia elegida indefinidamente, advirtiéndote cuántos "Meses Extra" te faltan verdaderamente.
+- **Responsive PWA**: Diseño _mobile-first_ ultra compacto utilizando `text-xs` y escalas ajustadas, con un Sidebar colapsable nativo.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Stack Tecnológico 💻
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Framework**: [Next.js](https://nextjs.org/) (App Router)
+- **Librería UI**: [React](https://reactjs.org/)
+- **Estilos**: [Tailwind CSS](https://tailwindcss.com/)
+- **Lenguaje**: [TypeScript](https://www.typescriptlang.org/)
+- **Iconografía**: [Lucide React](https://lucide.dev/)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Instalación y Arranque 🛠️
 
-## Learn More
+Para ejecutar el simulador en tu máquina local:
 
-To learn more about Next.js, take a look at the following resources:
+1. Clona el repositorio:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   git clone https://github.com/Ian9Franco/OMEGA.git
+   cd OMEGA
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. Instala las dependencias:
 
-## Deploy on Vercel
+   ```bash
+   npm install
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. Levanta el servidor de desarrollo:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   ```bash
+   npm run dev
+   ```
+
+4. Abre `http://localhost:3000` en tu navegador.
+
+## Licencia 📄
+
+Desarrollado de manera privada. Prohibida su distribución no autorizada sin consentimiento del autor original.
