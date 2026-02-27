@@ -19,7 +19,8 @@ import {
     Clock,
     Target,
     Menu,
-    X
+    X,
+    Zap
 } from 'lucide-react';
 
 const INITIAL_DATA = {
@@ -364,13 +365,33 @@ export default function Home() {
     setSalaryAllocations(next);
   };
 
+  const applyHardReset = () => {
+    // 1. Pay all current debts with savings in month 0 (March)
+    // We simulate this by setting the March savings rescue to the maximum debt values
+    const currentTotalDebt = INITIAL_DATA.deudas.reduce((acc, d) => acc+d.amount, 0);
+    const visaD = INITIAL_DATA.deudas.find(d => d.id === 'visa')?.amount || 0;
+    const masterD = INITIAL_DATA.deudas.find(d => d.id === 'master')?.amount || 0;
+
+    const nextRescue = [...savingsRescue];
+    nextRescue[0] = { active: true, visa: visaD, master: masterD };
+    setSavingsRescue(nextRescue);
+
+    // 2. Set all bank payments to 0 (as debt is gone)
+    const nextAllocs = [
+        { visa: 0, master: 0 },
+        { visa: 0, master: 0 },
+        { visa: 0, master: 0 }
+    ];
+    setSalaryAllocations(nextAllocs);
+
+    // 3. Enable Capital Reconstruction
+    setAutoReconstruct(true);
+  };
+
   const projection = useMemo(() => {
     // Deep copy initial debts to track them individually
     const currentDebts = INITIAL_DATA.deudas.map(d => ({ ...d }));
     let currentSavings = INITIAL_DATA.ahorro;
-    let currentSelfDebt = 0;
-    
-    let totalInterestPaid = 0;
     let totalYieldEarned = 0;
     
     const months = [];
@@ -581,8 +602,73 @@ export default function Home() {
         if (c < 48) monthsToGoal = c;
     }
 
-    return { months, totalInterestPaid, totalYieldEarned, currentSelfDebt, finalBankDebt, finalSavings, monthsToGoal };
-  }, [savingsRescue, salaryAllocations, mercadoPagoGastos, monthLabels]);
+    // --- GHOST PROJECTION (HARD RESET SCENARIO) ---
+    // This runs in parallel to calculate what COULD happen if we paid everything today.
+    const runGhostProjection = () => {
+        const gDebts = INITIAL_DATA.deudas.map(d => ({ ...d }));
+        let gSavings = INITIAL_DATA.ahorro;
+        let gTotalInterest = 0;
+        
+        // Month 0: Hard Reset (Immediate Payoff)
+        const totalDebtNow = gDebts.reduce((a, b) => a + b.amount, 0);
+        const payoffAmount = Math.min(totalDebtNow, gSavings);
+        gSavings -= payoffAmount;
+        
+        let remainingToPay = payoffAmount;
+        for (const d of gDebts) {
+            const pay = Math.min(remainingToPay, d.amount);
+            d.amount -= pay;
+            remainingToPay -= pay;
+        }
+
+        // Simulate forward
+        let gMonthsToGoal = 0;
+        const gMaxMonths = 60;
+        
+        while (gMonthsToGoal < gMaxMonths && (gDebts.reduce((a, b) => a + b.amount, 0) > 0 || gSavings < 5000000)) {
+            gMonthsToGoal++;
+            // Yield
+            gSavings += gSavings * TEM_SAVINGS;
+            
+            // Interest
+            for (const d of gDebts) {
+                if (d.amount > 0) {
+                     const bInt = d.amount * CONSTANTS.TEM_DEBT;
+                     const specificInt = bInt + (bInt * CONSTANTS.IVA) + (d.amount * CONSTANTS.IIBB);
+                     const finalInt = specificInt + (d.amount + specificInt) * CONSTANTS.SELLOS;
+                     d.amount += finalInt;
+                     gTotalInterest += finalInt;
+                     
+                     // Automatic full-salary payoff simulation
+                     const maxPmt = INITIAL_DATA.sueldo - (INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[2]);
+                     const actPmt = Math.min(maxPmt, d.amount);
+                     d.amount -= actPmt;
+                }
+            }
+            
+            // AutoReconstruct (Full salary to savings)
+            const mp = mercadoPagoGastos[2];
+            const fijos = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras + mp;
+            const debits = gDebts.reduce((a, b) => a + b.amount, 0);
+            if (debits === 0) {
+                 gSavings += (INITIAL_DATA.sueldo - fijos);
+            }
+        }
+        return { gTotalInterest, gMonthsToGoal };
+    };
+
+    const ghost = runGhostProjection();
+    const currentMonthsToGoal = monthsToGoal || 4; // Use 4 as base if goal met in June
+    const totalCurrentInterest = totalInterestPaid;
+    
+    const comparison = {
+        interestSaved: Math.max(0, totalCurrentInterest - ghost.gTotalInterest),
+        monthsFaster: Math.max(0, currentMonthsToGoal - ghost.gMonthsToGoal),
+        isOptimal: totalCurrentInterest <= ghost.gTotalInterest + 1000 && (monthsToGoal || 0) <= ghost.gMonthsToGoal
+    };
+
+    return { months, totalInterestPaid, totalYieldEarned, currentSelfDebt, finalBankDebt, finalSavings, monthsToGoal, comparison };
+  }, [savingsRescue, salaryAllocations, mercadoPagoGastos, monthLabels, autoReconstruct]);
 
   const pureInterestStart = useMemo(() => {
     return INITIAL_DATA.deudas.reduce((totalAcc, debt) => {
@@ -702,6 +788,30 @@ export default function Home() {
                                  <div className="w-11 h-6 bg-card-bg peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-blue"></div>
                              </label>
                         </div>
+
+                        {/* Comparative Strategy Banner (GHOST ANALYTICS) */}
+                        {!projection.comparison.isOptimal && (
+                             <div className="xl:col-span-12 bg-accent-mint/10 border border-accent-mint/30 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 fade-in">
+                                 <div className="flex items-center gap-4">
+                                     <div className="w-10 h-10 rounded-full bg-accent-mint/20 flex items-center justify-center text-accent-mint shrink-0">
+                                         <Target size={20} />
+                                     </div>
+                                     <div>
+                                         <h3 className="text-accent-mint font-bold text-sm">¡Hay un Plan Superador disponible!</h3>
+                                         <p className="text-[11px] text-text-secondary leading-tight mt-0.5">
+                                             Adoptando el <span className="text-white font-semibold">Plan Reset</span> ahorrarías <span className="text-accent-mint font-bold">{formatCurrency(projection.comparison.interestSaved)}</span> en intereses 
+                                             {projection.comparison.monthsFaster > 0 && <span> y llegarías <span className="text-accent-mint font-bold">{projection.comparison.monthsFaster} meses antes</span> a tu meta</span>}.
+                                         </p>
+                                     </div>
+                                 </div>
+                                 <button 
+                                     onClick={applyHardReset}
+                                     className="px-4 py-2 bg-accent-mint text-dashboard-bg text-xs font-bold rounded-xl hover:bg-white transition-all flex items-center gap-2 shadow-lg shadow-accent-mint/10"
+                                 >
+                                     <Zap size={14} fill="currentColor" /> APLICAR HARD RESET
+                                 </button>
+                             </div>
+                        )}
 
                         {/* Left Box: Monthly Config */}
                         <div className="xl:col-span-9 dashboard-card p-5 bg-accent-mint/5 border-accent-mint/20">
