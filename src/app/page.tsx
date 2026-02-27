@@ -333,7 +333,7 @@ export default function Home() {
   
   // Specific allocations per card per month instead of a global slider
   const [salaryAllocations, setSalaryAllocations] = useState([
-      { mp: 100000, visa: 100000, master: 100000 },
+      { mp: 221403, visa: 100000, master: 100000 },
       { mp: 100000, visa: 100000, master: 100000 },
       { mp: 100000, visa: 100000, master: 100000 }
   ]);
