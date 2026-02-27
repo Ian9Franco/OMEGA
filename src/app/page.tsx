@@ -17,7 +17,9 @@ import {
     TrendingUp,
     ShieldAlert,
     Clock,
-    Target
+    Target,
+    Menu,
+    X
 } from 'lucide-react';
 
 const INITIAL_DATA = {
@@ -255,10 +257,10 @@ const FlujoMensualView = ({ projectionData }: { projectionData: any }) => {
     );
 };
 
-const ProyeccionesView = ({ projectionData }: { projectionData: any }) => {
+const ProyeccionesView = ({ projectionData }: { projectionData: { months: { monthStr: string, savingsEnd: number, bankDebtEnd: number }[] } }) => {
     // Determine scale bounds
-    const maxAhorro = Math.max(5000000, ...projectionData.months.map((m: any) => m.savingsEnd));
-    const maxDeuda = Math.max(INITIAL_DATA.deudas.reduce((acc, d) => acc+d.amount,0), ...projectionData.months.map((m: any) => m.bankDebtEnd));
+    const maxAhorro = Math.max(5000000, ...projectionData.months.map((m: { savingsEnd: number }) => m.savingsEnd));
+    const maxDeuda = Math.max(INITIAL_DATA.deudas.reduce((acc, d) => acc+d.amount,0), ...projectionData.months.map((m: { bankDebtEnd: number }) => m.bankDebtEnd));
     const upperLimit = Math.max(maxAhorro, maxDeuda);
 
     return (
@@ -275,7 +277,7 @@ const ProyeccionesView = ({ projectionData }: { projectionData: any }) => {
                      <div className="absolute left-[-40px] top-3/4 text-[9px] text-text-tertiary border-t border-white/5 w-full"></div>
 
                      {/* X-Axis Data Bars */}
-                     {[ {monthStr: 'Día 0 (Hoy)', savingsEnd: INITIAL_DATA.ahorro, bankDebtEnd: INITIAL_DATA.deudas.reduce((acc, d) => acc+d.amount,0) }, ...projectionData.months].map((m: any, idx: number) => {
+                     {[ {monthStr: 'Día 0 (Hoy)', savingsEnd: INITIAL_DATA.ahorro, bankDebtEnd: INITIAL_DATA.deudas.reduce((acc, d) => acc+d.amount,0) }, ...projectionData.months].map((m: { monthStr: string, savingsEnd: number, bankDebtEnd: number }, idx: number) => {
                          const savingsHeight = (m.savingsEnd / upperLimit) * 100;
                          const debtHeight = (m.bankDebtEnd / upperLimit) * 100;
                          
@@ -326,9 +328,14 @@ const ProyeccionesView = ({ projectionData }: { projectionData: any }) => {
 
 export default function Home() {
   const [activeView, setActiveView] = useState('dashboard');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const monthLabels = ["Marzo 2026", "Abril 2026", "Mayo 2026"];
-  const [savingsInjections, setSavingsInjections] = useState<number[]>([0, 0, 0]);
+  const [savingsRescue, setSavingsRescue] = useState([
+      { active: false, amount: 0, target: 'visa' },
+      { active: false, amount: 0, target: 'visa' },
+      { active: false, amount: 0, target: 'visa' }
+  ]);
   const [mercadoPagoGastos, setMercadoPagoGastos] = useState<number[]>([221403, 221403, 221403]);
   
   // Specific allocations per card per month instead of a global slider
@@ -338,10 +345,10 @@ export default function Home() {
       { visa: 100000, master: 100000 }
   ]);
 
-  const updateSavings = (idx: number, val: number) => {
-    const next = [...savingsInjections];
-    next[idx] = val;
-    setSavingsInjections(next);
+  const updateSavingsRescue = (idx: number, field: string, val: string | number | boolean) => {
+    const next = [...savingsRescue];
+    next[idx] = { ...next[idx], [field]: val };
+    setSavingsRescue(next);
   };
 
   const updateMercadoPago = (idx: number, val: number) => {
@@ -410,16 +417,26 @@ export default function Home() {
 
         // 2. Execute Savings Rescue Injection (Cascades across all debt to rescue emergency situations)
         if (i < 3) { 
-            injectionThisMonth = Math.min(savingsInjections[i], currentSavings);
-            currentSavings -= injectionThisMonth;
-            currentSelfDebt += injectionThisMonth;
-            
-            let remainingInjectionAmount = injectionThisMonth;
-            for (const debt of currentDebts) {
-                if (remainingInjectionAmount > 0 && debt.amount > 0) {
-                    const payDown = Math.min(remainingInjectionAmount, debt.amount);
-                    debt.amount -= payDown;
-                    remainingInjectionAmount -= payDown;
+            const rescue = savingsRescue[i];
+            if (rescue.active && rescue.amount > 0) {
+                injectionThisMonth = Math.min(rescue.amount, currentSavings);
+                currentSavings -= injectionThisMonth;
+                currentSelfDebt += injectionThisMonth;
+                
+                let remainingInjectionAmount = injectionThisMonth;
+                const targetDebt = currentDebts.find(d => d.id === rescue.target);
+                
+                if (targetDebt && targetDebt.amount > 0) {
+                     const payDown = Math.min(remainingInjectionAmount, targetDebt.amount);
+                     targetDebt.amount -= payDown;
+                     remainingInjectionAmount -= payDown;
+                }
+                
+                // Return unused injection back to savings
+                if (remainingInjectionAmount > 0) {
+                    currentSavings += remainingInjectionAmount;
+                    currentSelfDebt -= remainingInjectionAmount;
+                    injectionThisMonth -= remainingInjectionAmount;
                 }
             }
         }
@@ -479,8 +496,51 @@ export default function Home() {
         });
     }
 
-    return { months, totalInterestPaid, totalYieldEarned, currentSelfDebt, finalBankDebt: months[3].bankDebtEnd, finalSavings: currentSavings };
-  }, [savingsInjections, salaryAllocations, mercadoPagoGastos, monthLabels]);
+    const finalSavings = currentSavings;
+    const finalBankDebt = months[3].bankDebtEnd;
+    let monthsToGoal = null;
+
+    // Simulate additional months if goal is not met (Max 48 months to prevent infinite loop)
+    if (finalBankDebt > 800000 || finalSavings < 5000000) {
+        let simSavings = finalSavings;
+        const simDebts = currentDebts.map(d => ({ ...d }));
+        let simSelfDebt = currentSelfDebt;
+        let c = 0;
+        const sAllocs = salaryAllocations[2];
+
+        while (c < 48 && (simDebts.reduce((a, b) => a + b.amount, 0) > 800000 || simSavings < 5000000)) {
+            c++;
+            simSavings += simSavings * TEM_SAVINGS;
+
+            let tBankPaid = 0;
+            for (const debt of simDebts) {
+                if (debt.amount > 0) {
+                    const bInt = debt.amount * CONSTANTS.TEM_DEBT;
+                    const iva = bInt * CONSTANTS.IVA;
+                    const iibb = debt.amount * CONSTANTS.IIBB; 
+                    let sInt = bInt + iva + iibb;
+                    sInt += (debt.amount + sInt) * CONSTANTS.SELLOS;
+                    debt.amount += sInt;
+
+                    const asked = sAllocs[debt.id as keyof typeof sAllocs] || 0;
+                    const actPmt = Math.min(asked, debt.amount);
+                    debt.amount -= actPmt;
+                    tBankPaid += actPmt;
+                }
+            }
+
+            const leftReserve = (sAllocs.visa + sAllocs.master) - tBankPaid;
+            if (leftReserve > 0 && simSelfDebt > 0) {
+                const pToSelf = Math.min(simSelfDebt, leftReserve);
+                simSelfDebt -= pToSelf;
+                simSavings += pToSelf;
+            }
+        }
+        if (c < 48) monthsToGoal = c;
+    }
+
+    return { months, totalInterestPaid, totalYieldEarned, currentSelfDebt, finalBankDebt, finalSavings, monthsToGoal };
+  }, [savingsRescue, salaryAllocations, mercadoPagoGastos, monthLabels]);
 
   const pureInterestStart = useMemo(() => {
     return INITIAL_DATA.deudas.reduce((totalAcc, debt) => {
@@ -550,7 +610,7 @@ export default function Home() {
                             
                             {/* Granular Debt Breakdown Bar */}
                             <div className="flex h-1.5 rounded-full overflow-hidden w-full bg-card-bg mt-1">
-                                {projection.months[2].debtBreakdown.map((debt: any, i: number) => {
+                                {projection.months[2].debtBreakdown.map((debt: { name: string; amount: number; type: string; id: string; order: number }, i: number) => {
                                     const total = projection.months[2].bankDebtEnd;
                                     if (total === 0 || debt.amount === 0) return null;
                                     return (
@@ -653,16 +713,45 @@ export default function Home() {
                                             </div>
 
                                             {/* Savings Input */}
-                                            <div className="mt-4 pt-3 border-t border-white/5">
-                                                <div className="flex justify-between text-[10px] mb-1">
-                                                    <span className="text-text-secondary">Rescate Ahorros (Emergencia)</span>
-                                                    <span className="font-semibold text-accent-mint">{formatCurrency(savingsInjections[mIdx])}</span>
+                                            <div className="mt-4 pt-3 border-t border-white/5 space-y-3">
+                                                <div className="flex justify-between items-center text-[10px]">
+                                                    <span className="text-text-secondary">Usar Apalancamiento con Ahorros</span>
+                                                    <label className="relative inline-flex items-center cursor-pointer">
+                                                        <input type="checkbox" className="sr-only peer" checked={savingsRescue[mIdx].active} onChange={(e) => updateSavingsRescue(mIdx, 'active', e.target.checked)} />
+                                                        <div className="w-9 h-5 bg-card-bg peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent-mint"></div>
+                                                    </label>
                                                 </div>
-                                                <input 
-                                                    type="range" min="0" max="2000000" step="50000" 
-                                                    value={savingsInjections[mIdx]} onChange={(e) => updateSavings(mIdx, Number(e.target.value))}
-                                                    className="w-full h-1 accent-accent-mint bg-card-bg rounded-lg appearance-none cursor-pointer"
-                                                />
+
+                                                {savingsRescue[mIdx].active && (
+                                                    <div className="bg-dashboard-bg/50 p-3 rounded-xl border border-white/5 space-y-3 fade-in">
+                                                        <div className="flex gap-2 text-[10px]">
+                                                            <button 
+                                                                onClick={() => updateSavingsRescue(mIdx, 'target', 'visa')}
+                                                                className={`flex-1 py-1.5 rounded-md border text-center transition-colors ${savingsRescue[mIdx].target === 'visa' ? 'border-accent-mint text-accent-mint bg-accent-mint/10' : 'border-white/10 text-text-tertiary shadow-none'}`}
+                                                            >
+                                                                A Visa
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => updateSavingsRescue(mIdx, 'target', 'master')}
+                                                                className={`flex-1 py-1.5 rounded-md border text-center transition-colors ${savingsRescue[mIdx].target === 'master' ? 'border-accent-mint text-accent-mint bg-accent-mint/10' : 'border-white/10 text-text-tertiary shadow-none'}`}
+                                                            >
+                                                                A Mastercard
+                                                            </button>
+                                                        </div>
+
+                                                        <div>
+                                                            <div className="flex justify-between text-[10px] mb-1">
+                                                                <span className="text-text-secondary">Capital a Rescatar / Inyectar</span>
+                                                                <span className="font-semibold text-accent-mint">{formatCurrency(savingsRescue[mIdx].amount)}</span>
+                                                            </div>
+                                                            <input 
+                                                                type="range" min="0" max="2000000" step="50000" 
+                                                                value={savingsRescue[mIdx].amount} onChange={(e) => updateSavingsRescue(mIdx, 'amount', Number(e.target.value))}
+                                                                className="w-full h-1 accent-accent-mint bg-card-bg rounded-lg appearance-none cursor-pointer"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {/* Living Cash Flow Calculator */}
@@ -732,9 +821,17 @@ export default function Home() {
                                 </div>
                             </div>
                             
-                            <button className="w-full bg-accent-yellow text-card-bg font-bold py-2.5 rounded-xl text-xs mt-4 hover:opacity-90 transition-opacity tracking-wide uppercase">
-                                Fijar Estrategia
-                            </button>
+                            {projection.monthsToGoal !== null ? (
+                                <div className="w-full bg-accent-salmon/10 text-accent-salmon border border-accent-salmon/20 font-medium py-3 rounded-xl text-center text-xs mt-4 tracking-wide fade-in flex flex-col gap-1 items-center">
+                                    <Clock size={16} />
+                                    <span>Para lograr meta:</span>
+                                    <b className="text-sm">Faltarían {projection.monthsToGoal} meses extra</b>
+                                </div>
+                            ) : (
+                                <button className="w-full bg-accent-yellow text-card-bg font-bold py-3 rounded-xl text-xs mt-4 hover:opacity-90 transition-opacity tracking-wide uppercase shadow-lg shadow-accent-yellow/20">
+                                    Objetivo Cumplido ✅
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -781,7 +878,7 @@ export default function Home() {
                                             
                                             <td className="py-3 px-1">
                                                 <div className="flex gap-2 min-w-max">
-                                                    {m.debtBreakdown.map((d: any) => (
+                                                    {m.debtBreakdown.map((d: { id: string; name: string; amount: number; type: string; order: number }) => (
                                                         <div key={d.id} className="flex gap-1.5 items-center bg-card-bg px-2 py-1 rounded text-[10px] text-text-secondary border border-white/5">
                                                             {d.type === 'app' ? <Smartphone size={10} className="text-accent-blue"/> : <CreditCard size={10} className="text-red-400"/>}
                                                             <Tooltip content={`Saldo actual total correspondiente a ${d.name}.`}>
@@ -805,38 +902,51 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-dashboard-bg text-text-primary px-2 py-3 md:px-4 text-[0.8rem] md:text-xs">
+    <div className="flex h-screen overflow-hidden bg-dashboard-bg text-text-primary px-2 py-3 md:px-4 text-[0.8rem] md:text-xs relative">
       
-      {/* Sidebar - Now Functional */}
-      <aside className="w-56 flex-shrink-0 hidden lg:flex flex-col pr-4 border-r border-white/5 h-full">
-        <div className="flex items-center gap-3 font-bold text-lg mb-8 px-3">
-            <div className="w-7 h-7 rounded-lg bg-accent-mint flex items-center justify-center text-dashboard-bg">
-                <Landmark size={16} />
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden transition-opacity"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-dashboard-bg transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 lg:w-56 flex flex-col pt-6 lg:pt-0 pr-4 lg:border-r border-white/5 h-full ${isMobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'}`}>
+        <div className="flex items-center justify-between mb-8 px-5 lg:px-3">
+            <div className="flex items-center gap-3 font-bold text-lg">
+                <div className="w-7 h-7 rounded-lg bg-accent-mint flex items-center justify-center text-dashboard-bg">
+                    <Landmark size={16} />
+                </div>
+                OMEGA 
             </div>
-            OMEGA 
+            <button className="lg:hidden text-text-secondary hover:text-white" onClick={() => setIsMobileMenuOpen(false)}>
+                <X size={20} />
+            </button>
         </div>
 
-        <nav className="flex flex-col gap-1.5 flex-1 text-sm">
+        <nav className="flex flex-col gap-1.5 flex-1 text-sm px-2 lg:px-0">
             <button 
-                onClick={() => setActiveView('dashboard')}
+                onClick={() => { setActiveView('dashboard'); setIsMobileMenuOpen(false); }}
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors w-full text-left ${activeView === 'dashboard' ? 'bg-card-bg text-accent-mint' : 'text-text-secondary hover:text-white'}`}>
                 <LayoutDashboard size={16} />
                 <span className="font-medium">Dashboard</span>
             </button>
             <button 
-                onClick={() => setActiveView('saldos')}
+                onClick={() => { setActiveView('saldos'); setIsMobileMenuOpen(false); }}
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors w-full text-left ${activeView === 'saldos' ? 'bg-card-bg text-accent-mint' : 'text-text-secondary hover:text-white'}`}>
                 <WalletCards size={16} />
                 <span className="font-medium">Mis Saldos</span>
             </button>
             <button 
-                onClick={() => setActiveView('flujo')}
+                onClick={() => { setActiveView('flujo'); setIsMobileMenuOpen(false); }}
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors w-full text-left ${activeView === 'flujo' ? 'bg-card-bg text-accent-mint' : 'text-text-secondary hover:text-white'}`}>
                 <ArrowRightLeft size={16} />
                 <span className="font-medium">Flujo Mensual</span>
             </button>
             <button 
-                 onClick={() => setActiveView('proyecciones')}
+                 onClick={() => { setActiveView('proyecciones'); setIsMobileMenuOpen(false); }}
                 className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors w-full text-left ${activeView === 'proyecciones' ? 'bg-card-bg text-accent-mint' : 'text-text-secondary hover:text-white'}`}>
                 <PieChart size={16} />
                 <span className="font-medium">Proyecciones</span>
@@ -858,13 +968,19 @@ export default function Home() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto custom-scroll lg:pl-6 pb-6">
+      <main className="flex-1 overflow-y-auto custom-scroll lg:pl-6 pb-6 w-full">
         
-        <header className="flex justify-between items-center mb-6">
-            <div>
-                <h1 className="text-2xl font-bold mb-0.5">Finance Dashboard.</h1>
-                <p className="text-text-secondary text-xs">Optimiza tu estrategia de repago y recupero de ahorros.</p>
+        <header className="flex justify-between items-center mb-6 mt-1 lg:mt-0">
+            <div className="flex items-center gap-3">
+                <button 
+                    onClick={() => setIsMobileMenuOpen(true)}
+                    className="lg:hidden p-1.5 mr-1 bg-card-bg rounded-lg border border-white/10 text-text-secondary hover:text-white">
+                    <Menu size={20} />
+                </button>
+                <div>
+                    <h1 className="text-xl md:text-2xl font-bold mb-0.5">Finance Dashboard.</h1>
+                    <p className="text-text-secondary text-[10px] md:text-xs">Optimiza tu estrategia de repago y recupero de ahorros.</p>
+                </div>
             </div>
             <div className="hidden md:flex gap-2">
                 <button className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-text-secondary cursor-not-allowed opacity-50">
