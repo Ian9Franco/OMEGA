@@ -1,64 +1,860 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useMemo } from 'react';
+import { 
+    LayoutDashboard, 
+    WalletCards,
+    ArrowRightLeft,
+    PieChart,
+    Settings,
+    HelpCircle,
+    Info,
+    TrendingDown,
+    Activity,
+    Landmark,
+    CreditCard,
+    Smartphone,
+    TrendingUp,
+    ShieldAlert,
+    Clock,
+    Target
+} from 'lucide-react';
+
+const INITIAL_DATA = {
+  sueldo: 800000,
+  ahorro: 4909900,
+  deudas: [
+      { id: 'mp', name: 'Mercado Pago', amount: 221400.00, type: 'app', order: 1 },
+      { id: 'visa', name: 'Visa Gold', amount: 1243086.57, type: 'card', order: 2 },
+      { id: 'master', name: 'Mastercard Gold', amount: 1466525.12, type: 'card', order: 3 }
+  ],
+  gastos: {
+      expensas: 45000,
+      vida: 200000
+  }
+};
+
+const CONSTANTS = {
+  TEM_DEBT: 0.0709, 
+  TNA_SAVINGS: 0.263, 
+  IVA: 0.21,
+  SELLOS: 0.012,
+  IIBB: 0.02
+};
+
+const TEM_SAVINGS = CONSTANTS.TNA_SAVINGS / 12;
+
+const formatCurrency = (val: number) => 
+  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(Math.round(val));
+
+const Tooltip = ({ children, content }: { children: React.ReactNode, content: string | React.ReactNode }) => (
+    <div className="relative inline-flex items-center tooltip-trigger cursor-help group/tooltip">
+        {children}
+        <div className="tooltip-content absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-3 bg-card-bg-light border border-white/10 rounded-xl text-xs text-text-secondary shadow-xl z-50 pointer-events-none opacity-0 group-hover/tooltip:opacity-100 transition-opacity">
+            {content}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-card-bg-light"></div>
+        </div>
+    </div>
+);
+
+// --- Sub-Views Components ---
+
+const MisSaldosView = ({ pureInterestStart }: { pureInterestStart: number }) => {
+    const totalDebt = INITIAL_DATA.deudas.reduce((acc, d) => acc + d.amount, 0);
+
+    return (
+        <div className="space-y-6 fade-in h-full flex flex-col">
+            <h2 className="text-xl font-bold flex items-center gap-2 mb-2"><WalletCards size={20} className="text-accent-blue" /> Fotografía Financiera (Día 0)</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* Assets (Activos) */}
+                <div className="dashboard-card p-6 border-l-4 border-l-accent-mint flex flex-col justify-between">
+                    <div>
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 className="text-sm text-text-secondary uppercase tracking-wider font-semibold">Tus Activos (Fondo Líquido)</h3>
+                                <div className="text-4xl font-bold text-white mt-1">{formatCurrency(INITIAL_DATA.ahorro)}</div>
+                            </div>
+                            <div className="bg-accent-mint/10 text-accent-mint px-3 py-1 rounded-full text-xs font-bold border border-accent-mint/20">
+                                Rendimiento: {CONSTANTS.TNA_SAVINGS * 100}% TNA
+                            </div>
+                        </div>
+                        <p className="text-xs text-text-tertiary border-b border-white/5 pb-4 mb-4">
+                            Capital actualmente invertido autogenerando rendimiento mensual previo al pago de cualquier obligación o inyección de capital en el plan de rescate.
+                        </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-card-bg-light p-3 rounded-xl border border-white/5">
+                            <p className="text-[10px] text-text-secondary mb-1">Ganancia x Día Estimada</p>
+                            <p className="text-lg font-semibold text-accent-mint">+{formatCurrency((INITIAL_DATA.ahorro * TEM_SAVINGS) / 30)}</p>
+                        </div>
+                        <div className="bg-card-bg-light p-3 rounded-xl border border-white/5">
+                            <p className="text-[10px] text-text-secondary mb-1">Rendimiento Base (Mes)</p>
+                            <p className="text-lg font-semibold text-accent-mint">+{formatCurrency(INITIAL_DATA.ahorro * TEM_SAVINGS)}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Liabilities Summary */}
+                <div className="dashboard-card p-6 border-l-4 border-l-accent-salmon flex flex-col justify-between">
+                     <div>
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 className="text-sm text-text-secondary uppercase tracking-wider font-semibold">Tus Pasivos (Deuda Total)</h3>
+                                <div className="text-4xl font-bold text-white mt-1">{formatCurrency(totalDebt)}</div>
+                            </div>
+                            <div className="bg-accent-salmon/10 text-accent-salmon px-3 py-1 rounded-full text-xs font-bold border border-accent-salmon/20 flex items-center gap-1">
+                                <Activity size={12}/> Interés Promedio: {CONSTANTS.TEM_DEBT * 100}% TEM
+                            </div>
+                        </div>
+                        <p className="text-xs text-text-tertiary border-b border-white/5 pb-4 mb-4 flex items-center gap-1">
+                           <ShieldAlert size={14} className="text-accent-yellow"/> Esta deuda genera una fuga tributaria + interés puro de <strong className="text-accent-salmon">{formatCurrency(pureInterestStart)}</strong> mensuales.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="flex-1 bg-card-bg-light h-2 rounded-full overflow-hidden flex">
+                            {INITIAL_DATA.deudas.map((d, i) => (
+                                <div key={i} style={{width: `${(d.amount/totalDebt)*100}%`}} className={`h-full border-r border-dashboard-bg ${d.type === 'app' ? 'bg-accent-blue' : 'bg-red-400'}`}></div>
+                            ))}
+                        </div>
+                        <span className="text-xs text-text-secondary">Tres (3) Entidades</span>
+                    </div>
+                </div>
+            </div>
+
+            <h3 className="text-sm uppercase tracking-wider font-semibold text-text-secondary mt-4">Detalle de Obligaciones</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 pb-4">
+                {INITIAL_DATA.deudas.map(debt => {
+                    const baseInt = debt.amount * CONSTANTS.TEM_DEBT;
+                    const iva = baseInt * CONSTANTS.IVA;
+                    const iibb = debt.amount * CONSTANTS.IIBB;
+                    const subtotal = baseInt + iva + iibb;
+                    const sellos = (debt.amount + subtotal) * CONSTANTS.SELLOS;
+                    const pureLoss = baseInt + iva + iibb + sellos;
+
+                    return (
+                        <div key={debt.id} className="dashboard-card-light p-5 relative overflow-hidden group">
+                            <div className={`absolute top-0 left-0 w-1 h-full ${debt.type === 'app' ? 'bg-accent-blue' : 'bg-red-400'}`}></div>
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="flex items-center gap-2 text-white">
+                                    {debt.type === 'app' ? <Smartphone size={18} className="text-accent-blue" /> : <CreditCard size={18} className="text-red-400" />}
+                                    <span className="font-semibold">{debt.name}</span>
+                                </div>
+                                <span className="text-[10px] bg-dashboard-bg px-2 py-1 rounded text-text-tertiary">#ORDEN_{debt.order}</span>
+                            </div>
+                            <div className="text-2xl font-bold mb-1">{formatCurrency(debt.amount)}</div>
+                            
+                            <div className="mt-6 space-y-2 text-xs border-t border-white/5 pt-4">
+                                <div className="flex justify-between">
+                                    <span className="text-text-tertiary">Interés (TEM 7.09%)</span>
+                                    <span className="text-accent-salmon">+{formatCurrency(baseInt)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-text-tertiary">IVA s/int. + Sellos + IIBB</span>
+                                    <span className="text-accent-salmon">+{formatCurrency(iva + sellos + iibb)}</span>
+                                </div>
+                                <div className="flex justify-between font-semibold border-t border-white/5 pt-2 mt-2">
+                                    <span className="text-text-secondary">Pérdida Pura C/Mes</span>
+                                    <span className="text-accent-salmon">-{formatCurrency(pureLoss)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )
+                })}
+            </div>
+        </div>
+    );
+};
+
+const FlujoMensualView = ({ projectionData }: { projectionData: any }) => {
+    const month0 = projectionData.months[0]; // Marzo 2026 data
+    const totalSueldo = INITIAL_DATA.sueldo;
+    const isCrisis = month0.livingCashFlow < 0;
+
+    return (
+        <div className="space-y-6 fade-in h-full flex flex-col">
+            <h2 className="text-xl font-bold flex items-center gap-2 mb-2"><ArrowRightLeft size={20} className="text-accent-mint" /> Trazabilidad de Sueldo (Mes Actual)</h2>
+            
+            <div className="dashboard-card p-6 flex flex-col lg:flex-row items-center gap-8">
+                <div className="relative w-48 h-48 shrink-0 flex items-center justify-center rounded-full border-8 border-card-bg-light">
+                    {/* SVG Pie Chart Simulation via Conic Gradient */}
+                    <div className="absolute inset-0 rounded-full" 
+                         style={{
+                             background: `conic-gradient(
+                                #93C5FD 0% ${(month0.bankPaid / totalSueldo)*100}%, 
+                                transparent ${(month0.bankPaid / totalSueldo)*100}% 100%)`
+                         }}></div>
+                     <div className="absolute inset-0 rounded-full" 
+                         style={{
+                             background: `conic-gradient(
+                                transparent 0% ${(month0.bankPaid / totalSueldo)*100}%,
+                                #FEF08A ${(month0.bankPaid / totalSueldo)*100}% ${((month0.bankPaid + INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.vida) / totalSueldo)*100}%,
+                                transparent ${((month0.bankPaid + INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.vida) / totalSueldo)*100}% 100%)`
+                         }}></div>
+                    <div className="absolute inset-0 rounded-full" 
+                         style={{
+                             background: `conic-gradient(
+                                transparent 0% ${((month0.bankPaid + INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.vida) / totalSueldo)*100}%,
+                                ${isCrisis ? '#FECACA' : '#A7F3D0'} ${((month0.bankPaid + INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.vida) / totalSueldo)*100}% 100%)`
+                         }}></div>
+                    
+                    {/* Inner hole */}
+                    <div className="absolute inset-3 bg-card-bg rounded-full flex flex-col items-center justify-center">
+                        <span className="text-[10px] text-text-tertiary uppercase font-bold tracking-widest">Ingreso</span>
+                        <span className="text-xl font-bold text-white">{formatCurrency(totalSueldo)}</span>
+                    </div>
+                </div>
+
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+                     <div className="dashboard-card-light p-4 border-l-2 border-l-accent-blue">
+                        <h4 className="text-xs text-text-secondary flex justify-between items-center mb-1">
+                            Acreedores (Deuda) <span className="font-bold">{((month0.bankPaid / totalSueldo)*100).toFixed(0)}%</span>
+                        </h4>
+                        <div className="text-xl font-bold text-accent-blue">{formatCurrency(month0.bankPaid)}</div>
+                        <p className="text-[10px] text-text-tertiary mt-2">Monto del sueldo absorbido por las tarjetas de crédito para cubrir intereses y capital este mes.</p>
+                     </div>
+                     <div className="dashboard-card-light p-4 border-l-2 border-l-accent-yellow">
+                        <h4 className="text-xs text-text-secondary flex justify-between items-center mb-1">
+                            Obligación Vida Fija <span className="font-bold">{(((INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.vida) / totalSueldo)*100).toFixed(0)}%</span>
+                        </h4>
+                        <div className="text-xl font-bold text-accent-yellow">{formatCurrency(INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.vida)}</div>
+                        <p className="text-[10px] text-text-tertiary mt-2">Presupuesto inamovible (Expensas: {formatCurrency(INITIAL_DATA.gastos.expensas)}, Vida: {formatCurrency(INITIAL_DATA.gastos.vida)}).</p>
+                     </div>
+                     <div className={`dashboard-card-light p-4 border-l-2 md:col-span-2 ${isCrisis ? 'border-l-accent-salmon' : 'border-l-accent-mint'}`}>
+                        <h4 className="text-xs text-text-secondary flex justify-between items-center mb-1">
+                            Líquido Restante / Sobrante <span className="font-bold">{((Math.max(0, month0.livingCashFlow) / totalSueldo)*100).toFixed(0)}%</span>
+                        </h4>
+                        <div className={`text-2xl font-bold ${isCrisis ? 'text-accent-salmon' : 'text-accent-mint'}`}>{formatCurrency(month0.livingCashFlow)}</div>
+                        <p className={`text-[9px] mt-2 ${isCrisis ? 'text-accent-salmon/80' : 'text-text-tertiary'}`}>
+                            {isCrisis 
+                                ? `PELIGRO: El sueldo no alcanza para la estrategia. Vas a tener que rescatar obligatoriamente ${formatCurrency(Math.abs(month0.livingCashFlow))} de tus ahorros este mes solo para sobrevivir financieramente.` 
+                                : `Este dinero te queda libre en el día a día para moverte tranquilamente, o la app asume que se re-invierte en el fondo final.`}
+                        </p>
+                     </div>
+                </div>
+            </div>
+
+             <div className="dashboard-card p-6 flex-1">
+                <h3 className="text-sm font-semibold mb-4 text-text-secondary">Estrategia Operativa Sugerida</h3>
+                <ul className="space-y-4 text-xs text-text-secondary">
+                    <li className="flex gap-3">
+                        <Clock className="text-accent-blue shrink-0 mt-0.5" size={14} />
+                        <div><strong className="text-white block">Posponer Consumo No Vital (Ganar 40 Días)</strong>
+                        Si necesitás hacer un gasto extra ("Líquido Restante" es chico), metelo en la tarjeta de crédito 1 día después de la fecha de cierre. Eso te da hasta el mes próximo a tasa cero, mientras tus pesos reales rinden 2.1% en tu Ahorro.</div>
+                    </li>
+                    <li className="flex gap-3">
+                        <Target className="text-accent-mint shrink-0 mt-0.5" size={14} />
+                        <div><strong className="text-white block">Objetivo: Nunca pagar el Mínimo real</strong>
+                        Pagar el mínimo significa que un gran porcentaje del bloque azul de tu sueldo (Acreedores) se va en humo (taxes/sellos) y no reduce casi nada del capital pasivo.</div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    );
+};
+
+const ProyeccionesView = ({ projectionData }: { projectionData: any }) => {
+    // Determine scale bounds
+    const maxAhorro = Math.max(5000000, ...projectionData.months.map((m: any) => m.savingsEnd));
+    const maxDeuda = Math.max(INITIAL_DATA.deudas.reduce((acc, d) => acc+d.amount,0), ...projectionData.months.map((m: any) => m.bankDebtEnd));
+    const upperLimit = Math.max(maxAhorro, maxDeuda);
+
+    return (
+        <div className="space-y-6 fade-in h-max flex flex-col">
+             <h2 className="text-xl font-bold flex items-center gap-2 mb-2"><PieChart size={20} className="text-accent-yellow" /> Trayectoria hacia Junio 2026</h2>
+             <p className="text-xs text-text-secondary mb-4">Gráfico de convergencia del plan diseñado. Las deudas deben desplomarse hacia la marca inferior mientras que el patrimonio líquido se recompone.</p>
+
+             <div className="dashboard-card p-6 flex flex-col pt-12">
+                 <div className="flex justify-between items-end h-[350px] lg:h-[400px] mb-8 relative border-b border-l border-white/10 pb-4 pl-4">
+                     {/* Y-Axis Markers */}
+                     <div className="absolute left-[-40px] top-0 text-[9px] text-text-tertiary">5M</div>
+                     <div className="absolute left-[-40px] top-1/4 text-[9px] text-text-tertiary border-t border-white/5 w-full"></div>
+                     <div className="absolute left-[-40px] top-2/4 text-[9px] text-text-tertiary border-t border-white/5 w-full">2.5M</div>
+                     <div className="absolute left-[-40px] top-3/4 text-[9px] text-text-tertiary border-t border-white/5 w-full"></div>
+
+                     {/* X-Axis Data Bars */}
+                     {[ {monthStr: 'Día 0 (Hoy)', savingsEnd: INITIAL_DATA.ahorro, bankDebtEnd: INITIAL_DATA.deudas.reduce((acc, d) => acc+d.amount,0) }, ...projectionData.months].map((m: any, idx: number) => {
+                         const savingsHeight = (m.savingsEnd / upperLimit) * 100;
+                         const debtHeight = (m.bankDebtEnd / upperLimit) * 100;
+                         
+                         return (
+                             <div key={idx} className="flex-1 flex flex-col items-center justify-end h-full relative group">
+                                 {/* Tooltip on hover */}
+                                 <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-card-bg-light border border-white/10 p-2 rounded text-[10px] w-32 shadow-xl z-10 pointer-events-none">
+                                    <div className="flex justify-between text-accent-mint mb-1"><span>Ahorro:</span> <span>{formatCurrency(m.savingsEnd)}</span></div>
+                                    <div className="flex justify-between text-accent-salmon"><span>Deuda:</span> <span>{formatCurrency(m.bankDebtEnd)}</span></div>
+                                 </div>
+
+                                 <div className="flex items-end gap-1 md:gap-3 w-1/2 h-full z-0 relative">
+                                    {/* Savings Bar */}
+                                     {m.savingsEnd > 0 && <div style={{height: `${savingsHeight}%`}} className="w-full lg:w-1/2 bg-accent-mint/80 rounded-t border border-accent-mint"></div>}
+                                     {/* Debt Bar */}
+                                     {m.bankDebtEnd > 0 && <div style={{height: `${debtHeight}%`}} className="w-full lg:w-1/2 bg-accent-salmon/80 rounded-t border border-accent-salmon"></div>}
+                                 </div>
+                                 <span className="text-[10px] text-text-tertiary absolute -bottom-6 w-max">{m.monthStr.replace(' 2026', '')}</span>
+                             </div>
+                         )
+                     })}
+                 </div>
+
+                 {/* Legend */}
+                 <div className="flex justify-center gap-8 text-[10px] md:text-xs text-text-secondary pt-4">
+                     <span className="flex items-center gap-2"><div className="w-3 h-3 bg-accent-mint/80 border border-accent-mint rounded-sm"></div> Capital Líquido Constante</span>
+                     <span className="flex items-center gap-2"><div className="w-3 h-3 bg-accent-salmon/80 border border-accent-salmon rounded-sm"></div> Obligación Pasiva Acumulativa</span>
+                 </div>
+             </div>
+             
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="dashboard-card-light p-4 text-xs">
+                     <h4 className="font-semibold text-white mb-2 flex items-center gap-2"><Target size={14} className="text-accent-yellow" /> Rendimiento de la Estrategia vs Objetivo</h4>
+                     <p className="text-text-secondary leading-relaxed mb-2">Según tu asignación actual planificada para las próximas 12 semanas:</p>
+                     <ul className="space-y-1 list-disc list-inside text-text-tertiary">
+                         <li><strong className={projectionData.months[2].savingsEnd >= 5000000 ? 'text-accent-mint' : 'text-accent-salmon'}>Ahorro Final: {formatCurrency(projectionData.months[2].savingsEnd)}</strong> (Meta: 5M)</li>
+                         <li><strong className={projectionData.months[2].bankDebtEnd <= 800000 ? 'text-accent-mint' : 'text-accent-salmon'}>Deuda Restante: {formatCurrency(projectionData.months[2].bankDebtEnd)}</strong> (Meta: {'<'}800k)</li>
+                     </ul>
+                 </div>
+                  <div className="dashboard-card-light p-4 text-xs flex justify-center flex-col bg-accent-yellow/5 border border-accent-yellow/20">
+                     <h4 className="font-semibold text-accent-yellow mb-2 text-center text-sm">Verdict: {projectionData.months[2].savingsEnd >= 5000000 && projectionData.months[2].bankDebtEnd <= 800000 ? 'OBJETIVO ALCANZADO ✅' : 'AJUSTE REQUERIDO ⚠️'}</h4>
+                     <p className="text-text-secondary text-center">Modificá las palancas de inyección de ahorro o sacrificio de sueldo en el Dashboard para corregir esta curva si estás por debajo de la meta.</p>
+                 </div>
+             </div>
+        </div>
+    );
+};
 
 export default function Home() {
+  const [activeView, setActiveView] = useState('dashboard');
+
+  const gastosFijosTotal = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.vida;
+  const maxAvailableSalaryForDebt = INITIAL_DATA.sueldo - gastosFijosTotal;
+
+  const monthLabels = ["Marzo 2026", "Abril 2026", "Mayo 2026"];
+  const [savingsInjections, setSavingsInjections] = useState<number[]>([0, 0, 0]);
+  
+  // Specific allocations per card per month instead of a global slider
+  const [salaryAllocations, setSalaryAllocations] = useState([
+      { mp: 100000, visa: 100000, master: 100000 },
+      { mp: 100000, visa: 100000, master: 100000 },
+      { mp: 100000, visa: 100000, master: 100000 }
+  ]);
+
+  const updateSavings = (idx: number, val: number) => {
+    const next = [...savingsInjections];
+    next[idx] = val;
+    setSavingsInjections(next);
+  };
+
+  const updateAllocation = (monthIdx: number, cardId: 'mp' | 'visa' | 'master', val: number) => {
+    const next = [...salaryAllocations];
+    next[monthIdx] = { ...next[monthIdx], [cardId]: val };
+    setSalaryAllocations(next);
+  };
+
+  const projection = useMemo(() => {
+    // Deep copy initial debts to track them individually
+    const currentDebts = INITIAL_DATA.deudas.map(d => ({ ...d }));
+    let currentSavings = INITIAL_DATA.ahorro;
+    let currentSelfDebt = 0;
+    
+    let totalInterestPaid = 0;
+    let totalYieldEarned = 0;
+    
+    const months = [];
+    
+    for (let i = 0; i < 4; i++) { 
+        const monthYield = currentSavings * TEM_SAVINGS;
+        currentSavings += monthYield;
+        totalYieldEarned += monthYield;
+
+        let injectionThisMonth = 0;
+        let pmtToSelf = 0;
+        const currentMonthAllocs = i < 3 ? salaryAllocations[i] : salaryAllocations[2]; 
+        
+        // Map to hold required minimums for UX extraction later
+        const requiredMinPaymentsThisMonth: Record<string, number> = {};
+
+        // 1. Calculate Compound Interest FIRST and add it to the principal balances 
+        let totalMonthInterest = 0;
+        let totalMinPaymentRequired = 0;
+        const totalDebtBeforeInterest = currentDebts.reduce((acc, d) => acc + d.amount, 0);
+
+        for (const debt of currentDebts) {
+            if (debt.amount > 0) {
+                // Determine interest generated this month on the remaining balance
+                const baseInt = debt.amount * CONSTANTS.TEM_DEBT;
+                const iva = baseInt * CONSTANTS.IVA;
+                const iibb = debt.amount * CONSTANTS.IIBB; 
+                let specificInterest = baseInt + iva + iibb;
+                const sellos = (debt.amount + specificInterest) * CONSTANTS.SELLOS;
+                specificInterest += sellos;
+
+                const specificMinPayment = specificInterest + (debt.amount * 0.05);
+                requiredMinPaymentsThisMonth[debt.id] = Math.min(specificMinPayment, debt.amount + specificInterest);
+
+                // CRITICAL FIX: Add interest to the balance (compounding) BEFORE payment
+                debt.amount += specificInterest;
+                
+                totalMonthInterest += specificInterest;
+                totalMinPaymentRequired += specificMinPayment;
+            } else {
+                requiredMinPaymentsThisMonth[debt.id] = 0;
+            }
+        }
+        totalInterestPaid += totalMonthInterest;
+
+        // 2. Execute Savings Rescue Injection (Cascades across all debt to rescue emergency situations)
+        if (i < 3) { 
+            injectionThisMonth = Math.min(savingsInjections[i], currentSavings);
+            currentSavings -= injectionThisMonth;
+            currentSelfDebt += injectionThisMonth;
+            
+            let remainingInjectionAmount = injectionThisMonth;
+            for (const debt of currentDebts) {
+                if (remainingInjectionAmount > 0 && debt.amount > 0) {
+                    const payDown = Math.min(remainingInjectionAmount, debt.amount);
+                    debt.amount -= payDown;
+                    remainingInjectionAmount -= payDown;
+                }
+            }
+        }
+
+        // 3. Execute Specific Salary Allocations
+        let totalBankPaid = 0;
+
+        for (const debt of currentDebts) {
+            if (debt.amount > 0) {
+                // Find the required minimum payment mapped during Interest phase
+                const minPayRequired = requiredMinPaymentsThisMonth[debt.id] || 0;
+                let askedPaymentThisCard = currentMonthAllocs[debt.id as keyof typeof currentMonthAllocs] || 0;
+                
+                // FORCE: User cannot pay less than the legal minimum natively, unless they pay the entire debt off
+                askedPaymentThisCard = Math.max(askedPaymentThisCard, Math.min(minPayRequired, debt.amount));
+
+                // You can't pay more than the accumulated debt allows
+                const actualPaymentThisCard = Math.min(askedPaymentThisCard, debt.amount);
+                
+                debt.amount -= actualPaymentThisCard;
+                totalBankPaid += actualPaymentThisCard;
+            }
+        }
+        
+        const currentTotalDebt = currentDebts.reduce((acc, d) => acc + d.amount, 0);
+
+        // Calculate if we have money left over in the budget capable of replenishing the "Self-Debt"
+        const totalAllocatedToBank = currentMonthAllocs.mp + currentMonthAllocs.visa + currentMonthAllocs.master;
+        const leftoverReservedBudget = totalAllocatedToBank - totalBankPaid; // Occurs if the slider was set high but debt was completely erased.
+
+        if (leftoverReservedBudget > 0 && currentSelfDebt > 0) {
+            pmtToSelf = Math.min(currentSelfDebt, leftoverReservedBudget);
+            currentSelfDebt -= pmtToSelf;
+            currentSavings += pmtToSelf; 
+        }
+
+        months.push({
+            monthId: i,
+            monthStr: i < 3 ? monthLabels[i] : "Junio 2026 (Proyección)",
+            bankDebtStart: totalDebtBeforeInterest,
+            debtBreakdown: currentDebts.map(d => ({...d})), // Capture snapshot of debts this month
+            requiredMinimums: requiredMinPaymentsThisMonth, // Keep track of minimum floors for the UI mapping
+            injection: injectionThisMonth,
+            interest: totalMonthInterest,
+            minPayment: totalMinPaymentRequired,
+            bankPaid: totalBankPaid,
+            savingsYield: monthYield,
+            bankDebtEnd: currentTotalDebt,
+            selfDebt: currentSelfDebt,
+            savingsEnd: currentSavings,
+            // CRITICAL FIX: Base living cash flow relies heavily on the constraints fixed above
+            livingCashFlow: INITIAL_DATA.sueldo - gastosFijosTotal - totalAllocatedToBank
+        });
+    }
+
+    return { months, totalInterestPaid, totalYieldEarned, currentSelfDebt, finalBankDebt: months[3].bankDebtEnd, finalSavings: currentSavings };
+  }, [savingsInjections, salaryAllocations, monthLabels, gastosFijosTotal]);
+
+  const pureInterestStart = useMemo(() => {
+    return INITIAL_DATA.deudas.reduce((totalAcc, debt) => {
+        const baseInt = debt.amount * CONSTANTS.TEM_DEBT;
+        const iva = baseInt * CONSTANTS.IVA;
+        const iibb = debt.amount * CONSTANTS.IIBB;
+        const subtotal = baseInt + iva + iibb;
+        const sellos = (debt.amount + subtotal) * CONSTANTS.SELLOS;
+        return totalAcc + baseInt + iva + iibb + sellos;
+    }, 0);
+  }, []);
+
+  const renderActiveView = () => {
+    switch (activeView) {
+        case 'saldos':
+            return <MisSaldosView pureInterestStart={pureInterestStart} />;
+        case 'flujo':
+            return <FlujoMensualView projectionData={projection} />;
+        case 'proyecciones':
+            return <ProyeccionesView projectionData={projection} />;
+        case 'dashboard':
+        default:
+            return (
+                <div className="fade-in">
+                    {/* Top Stats Row... remain as before but with accurate constraints */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                        
+                        <div className="dashboard-card p-4 flex flex-col justify-between">
+                            <div className="flex items-center gap-2 text-xs text-text-secondary mb-2">
+                                <Activity size={14} className="text-accent-salmon" />
+                                Pérdida Pura Mensual
+                                <Tooltip content="Monto que el banco te cobra HOY solo por intereses mensuales e impuestos sin achicar el capital. La matemática está corregida para integrar este valor a tu capital adeudado cada mes.">
+                                    <Info size={12} className="text-text-tertiary hover:text-white" />
+                                </Tooltip>
+                            </div>
+                            <div className="text-2xl font-bold text-white mb-1.5">{formatCurrency(pureInterestStart)}</div>
+                            <div className="flex items-center gap-1.5 text-[10px] text-accent-salmon bg-accent-salmon/10 w-max px-2 py-0.5 rounded">
+                                <TrendingDown size={12} /> Fuga de capital por deuda
+                            </div>
+                        </div>
+
+                        <div className="dashboard-card p-4 flex flex-col justify-between">
+                            <div className="flex items-center gap-2 text-xs text-text-secondary mb-2">
+                                <TrendingUp size={14} className="text-accent-mint" />
+                                Base Yield (Ahorros)
+                                <Tooltip content="Crecimiento orgánico mensual de tus ahorros asumiendo 26.3% TNA.">
+                                    <Info size={12} className="text-text-tertiary hover:text-white" />
+                                </Tooltip>
+                            </div>
+                            <div className="text-2xl font-bold text-white mb-1.5">{formatCurrency(INITIAL_DATA.ahorro * TEM_SAVINGS)}</div>
+                            <div className="flex items-center gap-1.5 text-[10px] text-accent-mint bg-accent-mint/10 w-max px-2 py-0.5 rounded">
+                                 Rendimiento a favor pasivo
+                            </div>
+                        </div>
+
+                        <div className="dashboard-card p-4 flex flex-col justify-between bg-card-bg-light">
+                            <div className="flex items-center justify-between text-xs text-text-secondary mb-2">
+                                <div className="flex items-center gap-2">
+                                    <LayoutDashboard size={14} className="text-accent-yellow" />
+                                    Target: Deuda Junio
+                                </div>
+                            </div>
+                            <div className={`text-2xl font-bold mb-1.5 ${projection.months[2].bankDebtEnd <= 800000 ? 'text-accent-mint' : 'text-accent-salmon'}`}>
+                                {formatCurrency(projection.months[2].bankDebtEnd)}
+                                <span className="text-[10px] text-text-tertiary ml-2 font-normal">{"<"} {formatCurrency(800000)}</span>
+                            </div>
+                            
+                            {/* Granular Debt Breakdown Bar */}
+                            <div className="flex h-1.5 rounded-full overflow-hidden w-full bg-card-bg mt-1">
+                                {projection.months[2].debtBreakdown.map((debt: any, i: number) => {
+                                    const total = projection.months[2].bankDebtEnd;
+                                    if (total === 0 || debt.amount === 0) return null;
+                                    return (
+                                        <Tooltip key={i} content={`${debt.name}: ${formatCurrency(debt.amount)}`}>
+                                            <div style={{width: `${(debt.amount/total)*100}%`}} className={`h-full border-r border-dashboard-bg ${debt.type === 'app' ? 'bg-accent-blue' : 'bg-red-400'}`}></div>
+                                        </Tooltip>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
+                        <div className="dashboard-card p-4 flex flex-col justify-between bg-card-bg-light border-accent-salmon/10 border">
+                            <div className="flex items-center gap-2 text-xs text-text-secondary mb-2">
+                                <WalletCards size={14} className="text-accent-blue" />
+                                Obligación de Vida (Fijo)
+                                <Tooltip content="Gastos inamovibles restados de tu sueldo base antes de permitirte destinar presupuesto a tus deudas.">
+                                    <Info size={12} className="text-text-tertiary hover:text-white" />
+                                </Tooltip>
+                            </div>
+                            <div className="text-2xl text-accent-blue font-bold mb-1.5">
+                                {formatCurrency(gastosFijosTotal)}
+                            </div>
+                            <div className="text-[10px] text-text-secondary flex justify-between w-full border-t border-white/5 pt-1.5">
+                                <span>Max. P/Deuda Disp:</span>
+                                <span className="text-white font-semibold">{formatCurrency(maxAvailableSalaryForDebt)}</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    {/* Dynamic Controls Layout (RESTYLED FOR 4 SLIDERS) */}
+                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-4">
+                        
+                        {/* Left Box: Monthly Config */}
+                        <div className="xl:col-span-9 dashboard-card p-5 bg-accent-mint/5 border-accent-mint/20">
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-base font-semibold text-accent-mint flex items-center gap-2">
+                                    Control de Flujo Estratégico Detallado
+                                </h2>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                {[0, 1, 2].map((mIdx) => {
+                                    const monthData = projection.months[mIdx];
+                                    const allocs = salaryAllocations[mIdx];
+                                    const totalAllocatedThisMonth = allocs.mp + allocs.visa + allocs.master;
+                                    const availableBudgetRemaining = maxAvailableSalaryForDebt - totalAllocatedThisMonth;
+                                    const isBudgetExceeded = availableBudgetRemaining < 0;
+
+                                    return (
+                                        <div key={mIdx} className="dashboard-card-light p-4 flex flex-col">
+                                            <h3 className="font-medium text-white mb-3 flex justify-between items-center text-xs border-b border-white/5 pb-2">
+                                                {monthLabels[mIdx]}
+                                            </h3>
+                                            
+                                            {/* Specific Debt Sliders */}
+                                            <div className="space-y-4 flex-1">
+                                                <div>
+                                                    <div className="flex justify-between text-[10px] mb-1">
+                                                        <span className="text-text-secondary flex items-center gap-1"><Smartphone size={10} className="text-accent-blue"/> Pago Mercado Pago</span>
+                                                        <span className="font-semibold text-accent-blue">{formatCurrency(allocs.mp)}</span>
+                                                    </div>
+                                                    <input 
+                                                        type="range" min={Math.round(monthData.requiredMinimums.mp || 0)} max={Math.min(INITIAL_DATA.deudas[0].amount * 1.5, maxAvailableSalaryForDebt)} step="1000" 
+                                                        value={Math.max(allocs.mp, monthData.requiredMinimums.mp || 0)} onChange={(e) => updateAllocation(mIdx, 'mp', Number(e.target.value))}
+                                                        className="w-full accent-accent-blue h-1 bg-card-bg rounded-lg appearance-none cursor-pointer"
+                                                    />
+                                                    <div className="text-[9px] text-text-tertiary mt-1">Mínimo legal: {formatCurrency(monthData.requiredMinimums.mp || 0)}</div>
+                                                </div>
+
+                                                <div>
+                                                    <div className="flex justify-between text-[10px] mb-1">
+                                                        <span className="text-text-secondary flex items-center gap-1"><CreditCard size={10} className="text-red-400"/> Pago Visa</span>
+                                                        <span className="font-semibold text-white">{formatCurrency(allocs.visa)}</span>
+                                                    </div>
+                                                    <input 
+                                                        type="range" min={Math.round(monthData.requiredMinimums.visa || 0)} max={maxAvailableSalaryForDebt} step="5000" 
+                                                        value={Math.max(allocs.visa, monthData.requiredMinimums.visa || 0)} onChange={(e) => updateAllocation(mIdx, 'visa', Number(e.target.value))}
+                                                        className="w-full accent-white h-1 bg-card-bg rounded-lg appearance-none cursor-pointer"
+                                                    />
+                                                    <div className="text-[9px] text-text-tertiary mt-1">Mínimo legal: {formatCurrency(monthData.requiredMinimums.visa || 0)}</div>
+                                                </div>
+
+                                                <div>
+                                                    <div className="flex justify-between text-[10px] mb-1">
+                                                        <span className="text-text-secondary flex items-center gap-1"><CreditCard size={10} className="text-red-400"/> Pago Mastercard</span>
+                                                        <span className="font-semibold text-white">{formatCurrency(allocs.master)}</span>
+                                                    </div>
+                                                    <input 
+                                                        type="range" min={Math.round(monthData.requiredMinimums.master || 0)} max={maxAvailableSalaryForDebt} step="5000" 
+                                                        value={Math.max(allocs.master, monthData.requiredMinimums.master || 0)} onChange={(e) => updateAllocation(mIdx, 'master', Number(e.target.value))}
+                                                        className="w-full accent-white h-1 bg-card-bg rounded-lg appearance-none cursor-pointer"
+                                                    />
+                                                    <div className="text-[9px] text-text-tertiary mt-1">Mínimo legal: {formatCurrency(monthData.requiredMinimums.master || 0)}</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Savings Input */}
+                                            <div className="mt-4 pt-3 border-t border-white/5">
+                                                <div className="flex justify-between text-[10px] mb-1">
+                                                    <span className="text-text-secondary">Rescate Ahorros (Emergencia)</span>
+                                                    <span className="font-semibold text-accent-mint">{formatCurrency(savingsInjections[mIdx])}</span>
+                                                </div>
+                                                <input 
+                                                    type="range" min="0" max="2000000" step="50000" 
+                                                    value={savingsInjections[mIdx]} onChange={(e) => updateSavings(mIdx, Number(e.target.value))}
+                                                    className="w-full h-1 accent-accent-mint bg-card-bg rounded-lg appearance-none cursor-pointer"
+                                                />
+                                            </div>
+
+                                            {/* Living Cash Flow Calculator */}
+                                            <div className={`mt-4 pt-2 border-t border-white/5 bg-dashboard-bg/50 -mx-2 px-2 pb-2 rounded`}>
+                                                <div className="flex justify-between items-center text-[10px] mb-1">
+                                                    <span className="text-text-secondary">Presupuesto p/Deuda</span>
+                                                    <span className={`font-semibold ${isBudgetExceeded ? 'text-accent-salmon' : 'text-text-tertiary'}`}>
+                                                        {formatCurrency(totalAllocatedThisMonth)} / {formatCurrency(maxAvailableSalaryForDebt)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-[10px]">
+                                                    <span className="text-text-tertiary flex items-center gap-1 font-semibold">
+                                                        Líquido de Vida Restante
+                                                        <Tooltip content="Dinero que FÍSICAMENTE te queda en la billetera mes a mes luego de expensas, pago de techo, y las asignaciones específicas de la tarjeta arriba. Si esto da negativo, tu plan no cierra sin usar ahorros.">
+                                                            <Info size={10} className="cursor-help" />
+                                                        </Tooltip>
+                                                    </span>
+                                                    <span className={`font-bold ${isBudgetExceeded ? 'text-accent-salmon bg-accent-salmon/10 px-1 rounded' : 'text-white'}`}>
+                                                        {formatCurrency(monthData.livingCashFlow)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Right Box: Goal Overview */}
+                        <div className="xl:col-span-3 dashboard-card p-5 flex flex-col justify-between">
+                            <div>
+                                <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
+                                    Resumen Recalculado
+                                </h2>
+                                
+                                <div className="dashboard-card-light p-3 rounded-xl mb-3 border border-white/5">
+                                    <div className="text-[10px] text-text-secondary mb-1">Ahorro Re-constituido (Junio)</div>
+                                    <div className="text-xl font-bold text-accent-yellow mb-0.5">
+                                        {formatCurrency(INITIAL_DATA.ahorro - projection.currentSelfDebt)}
+                                    </div>
+                                    <div className="text-[10px] text-text-tertiary">
+                                        Obj: {formatCurrency(INITIAL_DATA.ahorro)}
+                                    </div>
+                                </div>
+
+                                <div className="dashboard-card-light p-3 rounded-xl">
+                                    <div className="text-[10px] text-text-secondary mb-2 border-b border-white/5 pb-1">Balance Consolidado</div>
+                                    <div className="flex flex-col gap-1.5">
+                                        <div className="flex justify-between text-xs">
+                                            <span className="text-accent-salmon decoration-dotted underline decoration-accent-salmon/50 underline-offset-2">Total Intereses:</span>
+                                            <span className="font-medium">-{formatCurrency(projection.totalInterestPaid)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs">
+                                            <span className="text-accent-mint decoration-dotted underline decoration-accent-mint/50 underline-offset-2">Yield Capital:</span>
+                                            <span className="font-medium">+{formatCurrency(projection.totalYieldEarned)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button className="w-full bg-accent-yellow text-card-bg font-bold py-2.5 rounded-xl text-xs mt-4 hover:opacity-90 transition-opacity tracking-wide uppercase">
+                                Fijar Estrategia
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Detailed Timeline */}
+                    <div className="dashboard-card p-5">
+                        <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
+                            Libro Mayor Modificado (Proyectado)
+                            <Tooltip content="Auditoría mensual completa. Ahora los intereses sumados se capitalizan directamente de vuelta sobre el saldo de la deuda el mes siguiente.">
+                                <Info size={14} className="text-text-tertiary hover:text-white" />
+                            </Tooltip>
+                        </h2>
+
+                        <div className="overflow-x-auto custom-scroll -mx-2 px-2 pb-2">
+                            <table className="w-full text-left border-collapse min-w-[950px]">
+                                <thead>
+                                    <tr className="text-text-secondary text-[10px] uppercase tracking-wider font-semibold border-b border-white/10">
+                                        <th className="py-3 font-medium pl-2">Periodo</th>
+                                        <th className="py-3 font-medium">
+                                            <Tooltip content="Traspaso extraordinario del capital guardado hacia el pago de deuda.">
+                                                <span className="border-b border-dashed border-text-tertiary pb-0.5 cursor-help">Inyecc Ahorro</span>
+                                            </Tooltip>
+                                        </th>
+                                        <th className="py-3 font-medium">
+                                            <Tooltip content="Penalidad cobrada por mantener deuda (TEM/IVA/Sellos/IIBB). Ahora SUMA y compone al capital.">
+                                                <span className="border-b border-dashed border-text-tertiary pb-0.5 cursor-help">Cargo Extra</span>
+                                            </Tooltip>
+                                        </th>
+                                        <th className="py-3 font-medium text-accent-blue">Asignación Base Salario</th>
+                                        <th className="py-3 font-medium">Saldos Retenidos por Acreedor</th>
+                                        <th className="py-3 font-medium pr-2 text-right">Patrimonio Fijo</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-xs">
+                                    {projection.months.map((m, idx) => (
+                                        <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                            <td className="py-3 text-white font-medium pl-2">{m.monthStr}</td>
+                                            <td className="py-3">
+                                                <span className="bg-accent-mint/10 text-accent-mint px-2 py-1 rounded text-[10px]">
+                                                    {formatCurrency(m.injection)}
+                                                </span>
+                                            </td>
+                                            <td className="py-3 text-accent-salmon/90">+{formatCurrency(m.interest)}</td>
+                                            <td className="py-3 font-medium text-white">-{formatCurrency(m.bankPaid)}</td>
+                                            
+                                            <td className="py-3 px-1">
+                                                <div className="flex gap-2 min-w-max">
+                                                    {m.debtBreakdown.map((d: any) => (
+                                                        <div key={d.id} className="flex gap-1.5 items-center bg-card-bg px-2 py-1 rounded text-[10px] text-text-secondary border border-white/5">
+                                                            {d.type === 'app' ? <Smartphone size={10} className="text-accent-blue"/> : <CreditCard size={10} className="text-red-400"/>}
+                                                            <Tooltip content={`Saldo actual total correspondiente a ${d.name}.`}>
+                                                                <span className={`${d.amount === 0 ? 'text-text-tertiary line-through' : 'font-semibold text-white'}`}>{formatCurrency(d.amount)}</span>
+                                                            </Tooltip>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </td>
+
+                                            <td className="py-3 font-semibold text-white pr-2 text-right">{formatCurrency(m.savingsEnd)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            );
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex h-screen overflow-hidden bg-dashboard-bg text-text-primary px-2 py-3 md:px-4 text-[0.8rem] md:text-xs">
+      
+      {/* Sidebar - Now Functional */}
+      <aside className="w-56 flex-shrink-0 hidden lg:flex flex-col pr-4 border-r border-white/5 h-full">
+        <div className="flex items-center gap-3 font-bold text-lg mb-8 px-3">
+            <div className="w-7 h-7 rounded-lg bg-accent-mint flex items-center justify-center text-dashboard-bg">
+                <Landmark size={16} />
+            </div>
+            OMEGA 
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <nav className="flex flex-col gap-1.5 flex-1 text-sm">
+            <button 
+                onClick={() => setActiveView('dashboard')}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors w-full text-left ${activeView === 'dashboard' ? 'bg-card-bg text-accent-mint' : 'text-text-secondary hover:text-white'}`}>
+                <LayoutDashboard size={16} />
+                <span className="font-medium">Dashboard</span>
+            </button>
+            <button 
+                onClick={() => setActiveView('saldos')}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors w-full text-left ${activeView === 'saldos' ? 'bg-card-bg text-accent-mint' : 'text-text-secondary hover:text-white'}`}>
+                <WalletCards size={16} />
+                <span className="font-medium">Mis Saldos</span>
+            </button>
+            <button 
+                onClick={() => setActiveView('flujo')}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors w-full text-left ${activeView === 'flujo' ? 'bg-card-bg text-accent-mint' : 'text-text-secondary hover:text-white'}`}>
+                <ArrowRightLeft size={16} />
+                <span className="font-medium">Flujo Mensual</span>
+            </button>
+            <button 
+                 onClick={() => setActiveView('proyecciones')}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors w-full text-left ${activeView === 'proyecciones' ? 'bg-card-bg text-accent-mint' : 'text-text-secondary hover:text-white'}`}>
+                <PieChart size={16} />
+                <span className="font-medium">Proyecciones</span>
+            </button>
+        </nav>
+
+        <div className="mt-auto px-3">
+            <div className="flex items-center gap-3 py-2">
+                <div className="w-8 h-8 rounded-full bg-card-bg-light border border-white/10 overflow-hidden">
+                    <div className="w-full h-full bg-accent-yellow/20 flex justify-center items-end pt-1">
+                        <div className="w-4 h-4 rounded-full bg-accent-yellow/80"></div>
+                    </div>
+                </div>
+                <div>
+                    <p className="font-semibold text-xs">Usuario</p>
+                    <p className="text-[10px] text-text-tertiary">@finanzas</p>
+                </div>
+            </div>
         </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto custom-scroll lg:pl-6 pb-6">
+        
+        <header className="flex justify-between items-center mb-6">
+            <div>
+                <h1 className="text-2xl font-bold mb-0.5">Finance Dashboard.</h1>
+                <p className="text-text-secondary text-xs">Optimiza tu estrategia de repago y recupero de ahorros.</p>
+            </div>
+            <div className="hidden md:flex gap-2">
+                <button className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-text-secondary cursor-not-allowed opacity-50">
+                    <Settings size={14} />
+                </button>
+                <button className="px-4 py-1.5 rounded-full bg-card-bg text-text-secondary border border-white/5 font-semibold text-xs cursor-not-allowed opacity-50">
+                    Exportar Plan
+                </button>
+            </div>
+        </header>
+
+        {renderActiveView()}
+
       </main>
     </div>
   );
