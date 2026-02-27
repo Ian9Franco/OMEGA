@@ -516,11 +516,11 @@ export default function Home() {
                             <div className="flex items-center gap-2 text-xs text-text-secondary mb-2">
                                 <TrendingUp size={14} className="text-accent-mint" />
                                 Base Yield (Ahorros)
-                                <Tooltip content="Crecimiento orgánico mensual de tus ahorros asumiendo 26.3% TNA.">
+                                <Tooltip content="Crecimiento orgánico de tus ahorros este mes asumiendo 26.3% TNA. Si inyectás ahorros en la tarjeta, este número bajará el mes siguiente proporcionalmente.">
                                     <Info size={12} className="text-text-tertiary hover:text-white" />
                                 </Tooltip>
                             </div>
-                            <div className="text-2xl font-bold text-white mb-1.5">{formatCurrency(INITIAL_DATA.ahorro * TEM_SAVINGS)}</div>
+                            <div className="text-2xl font-bold text-white mb-1.5">{formatCurrency(projection.months[0].savingsYield)}</div>
                             <div className="flex items-center gap-1.5 text-[10px] text-accent-mint bg-accent-mint/10 w-max px-2 py-0.5 rounded">
                                  Rendimiento a favor pasivo
                             </div>
@@ -652,21 +652,30 @@ export default function Home() {
                                             </div>
 
                                             {/* Living Cash Flow Calculator */}
-                                            <div className={`mt-4 pt-2 border-t border-white/5 bg-dashboard-bg/50 -mx-2 px-2 pb-2 rounded`}>
-                                                <div className="flex justify-between items-center text-[10px] mb-1">
-                                                    <span className="text-text-secondary">Presupuesto p/Deuda</span>
-                                                    <span className={`font-semibold ${isBudgetExceeded ? 'text-accent-salmon' : 'text-text-tertiary'}`}>
-                                                        {formatCurrency(totalAllocatedThisMonth)} / {formatCurrency(maxAvailableSalaryForDebt)}
-                                                    </span>
+                                            <div className={`mt-4 pt-3 border-t border-white/5 bg-dashboard-bg/30 -mx-4 px-4 pb-3`}>
+                                                <div className="space-y-1.5 mb-3 border-b border-white/5 pb-3">
+                                                    <div className="flex justify-between items-center text-[10px]">
+                                                        <span className="text-text-secondary">Sueldo Base Inicial</span>
+                                                        <span className="text-white font-medium">{formatCurrency(INITIAL_DATA.sueldo)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[10px]">
+                                                        <span className="text-accent-yellow/80">(-) Gastos Fijos (Vida + Exp)</span>
+                                                        <span className="text-accent-yellow/80">-{formatCurrency(gastosFijosTotal)}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-[10px]">
+                                                        <span className="text-accent-blue/80">(-) Pago Tarjetas Asignado</span>
+                                                        <span className="text-accent-blue/80">-{formatCurrency(totalAllocatedThisMonth)}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex justify-between items-center text-[10px]">
-                                                    <span className="text-text-tertiary flex items-center gap-1 font-semibold">
-                                                        Líquido de Vida Restante
-                                                        <Tooltip content="Dinero que FÍSICAMENTE te queda en la billetera mes a mes luego de expensas, pago de techo, y las asignaciones específicas de la tarjeta arriba. Si esto da negativo, tu plan no cierra sin usar ahorros.">
-                                                            <Info size={10} className="cursor-help" />
+                                                
+                                                <div className="flex justify-between items-center text-[11px]">
+                                                    <span className="text-text-tertiary flex items-center gap-1 font-bold">
+                                                        Sueldo Libre en Mano
+                                                        <Tooltip content="Monto final FÍSICO que te queda en la cuenta en este mes, después de apartar las expensas, costo de vida y pagar lo que configuraste en las tarjetas. Si el número es rojo, te pasaste, tu plan va a tener que sacar plata del fondo de Ahorro para llegar a fin de mes.">
+                                                            <Info size={12} className="cursor-help" />
                                                         </Tooltip>
                                                     </span>
-                                                    <span className={`font-bold ${isBudgetExceeded ? 'text-accent-salmon bg-accent-salmon/10 px-1 rounded' : 'text-white'}`}>
+                                                    <span className={`font-bold ${isBudgetExceeded ? 'text-accent-salmon bg-accent-salmon/20 px-1.5 py-0.5 rounded border border-accent-salmon/30' : 'text-accent-mint'}`}>
                                                         {formatCurrency(monthData.livingCashFlow)}
                                                     </span>
                                                 </div>
