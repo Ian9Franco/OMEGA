@@ -392,6 +392,9 @@ export default function Home() {
     // Deep copy initial debts to track them individually
     const currentDebts = INITIAL_DATA.deudas.map(d => ({ ...d }));
     let currentSavings = INITIAL_DATA.ahorro;
+    let currentSelfDebt = 0;
+    
+    let totalInterestPaid = 0;
     let totalYieldEarned = 0;
     
     const months = [];
