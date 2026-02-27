@@ -337,6 +337,7 @@ export default function Home() {
       { active: false, visa: 0, master: 0 }
   ]);
   const [mercadoPagoGastos, setMercadoPagoGastos] = useState<number[]>([221403, 221403, 221403]);
+  const [autoReconstruct, setAutoReconstruct] = useState(false);
   
   // Specific allocations per card per month instead of a global slider
   const [salaryAllocations, setSalaryAllocations] = useState([
@@ -487,16 +488,24 @@ export default function Home() {
         
         const currentTotalDebt = currentDebts.reduce((acc, d) => acc + d.amount, 0);
 
-        // Calculate if we have money left over in the budget capable of replenishing the "Self-Debt"
+        // Calculate if we have money left over in the budget capable of replenishing capital
         const currentMP = i < 3 ? mercadoPagoGastos[i] : mercadoPagoGastos[2];
         const gastosFijosTotalesThisMonth = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras + currentMP;
         const totalAllocatedToBank = currentMonthAllocs.visa + currentMonthAllocs.master;
-        const leftoverReservedBudget = totalAllocatedToBank - totalBankPaid; // Occurs if the slider was set high but debt was completely erased.
-
+        
+        // 1. Surplus from specific reservation (Slider high but debt erased)
+        const leftoverReservedBudget = totalAllocatedToBank - totalBankPaid; 
         if (leftoverReservedBudget > 0 && currentSelfDebt > 0) {
             pmtToSelf = Math.min(currentSelfDebt, leftoverReservedBudget);
             currentSelfDebt -= pmtToSelf;
             currentSavings += pmtToSelf; 
+        }
+
+        // 2. Global Surplus Reinvestment (Capital Reconstruction Strategy)
+        // This takes the money that WASN'T even allocated to sliders and puts it in savings
+        const surplusLivingBudget = INITIAL_DATA.sueldo - gastosFijosTotalesThisMonth - totalAllocatedToBank;
+        if (autoReconstruct && surplusLivingBudget > 0) {
+             currentSavings += surplusLivingBudget;
         }
 
         months.push({
@@ -513,8 +522,9 @@ export default function Home() {
             bankDebtEnd: currentTotalDebt,
             selfDebt: currentSelfDebt,
             savingsEnd: currentSavings,
-            // CRITICAL FIX: Base living cash flow relies heavily on the constraints fixed above
-            livingCashFlow: INITIAL_DATA.sueldo - gastosFijosTotalesThisMonth - totalAllocatedToBank,
+            // livingCashFlow shows what remains for discretionary spending. 
+            // If autoReconstruct is ON, this effectively becomes 0 as it's being "saved"
+            livingCashFlow: autoReconstruct ? 0 : surplusLivingBudget,
             gastosFijosTotales: gastosFijosTotalesThisMonth,
             mercadoPagoGasto: currentMP 
         });
@@ -558,6 +568,14 @@ export default function Home() {
                 const pToSelf = Math.min(simSelfDebt, leftReserve);
                 simSelfDebt -= pToSelf;
                 simSavings += pToSelf;
+            }
+
+            // Strategy: Reinvest surplus in prediction too
+            if (autoReconstruct) {
+                 const currentMP = mercadoPagoGastos[2];
+                 const gFijos = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras + currentMP;
+                 const surplusInSim = INITIAL_DATA.sueldo - gFijos - (sAllocs.visa + sAllocs.master);
+                 if (surplusInSim > 0) simSavings += surplusInSim;
             }
         }
         if (c < 48) monthsToGoal = c;
@@ -668,6 +686,23 @@ export default function Home() {
                     {/* Dynamic Controls Layout (RESTYLED FOR 4 SLIDERS) */}
                     <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 mb-4">
                         
+                        {/* Global Strategy Box (NEW: HARD RESET) */}
+                        <div className="xl:col-span-12 dashboard-card p-4 bg-accent-blue/5 border-accent-blue/20 flex flex-col md:flex-row items-center justify-between gap-4">
+                             <div className="flex items-center gap-3">
+                                 <div className="p-2 bg-accent-blue/10 rounded-lg">
+                                     <TrendingUp size={20} className="text-accent-blue" />
+                                 </div>
+                                 <div>
+                                     <h3 className="font-semibold text-white text-sm">Estrategia: Reconstrucción de Capital (Hard Reset)</h3>
+                                     <p className="text-[10px] text-text-secondary">Automatiza el ahorro del sueldo sobrante una vez eliminada la deuda para recuperar tus $5M más rápido.</p>
+                                 </div>
+                             </div>
+                             <label className="relative inline-flex items-center cursor-pointer">
+                                 <input type="checkbox" className="sr-only peer" checked={autoReconstruct} onChange={(e) => setAutoReconstruct(e.target.checked)} />
+                                 <div className="w-11 h-6 bg-card-bg peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-blue"></div>
+                             </label>
+                        </div>
+
                         {/* Left Box: Monthly Config */}
                         <div className="xl:col-span-9 dashboard-card p-5 bg-accent-mint/5 border-accent-mint/20">
                             <div className="flex items-center justify-between mb-4">
