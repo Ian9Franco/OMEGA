@@ -2,13 +2,12 @@
 
 Esta aplicación es un potente simulador financiero y gestor de gastos personales (Single Page Application) desarrollado en Next.js. El objetivo principal de **OMEGA** es proyectar trayectorias de deudas (tarjetas de crédito, préstamos) y activos líquidos (ahorros e inversiones) frente a hábitos de consumo dinámicos, calculando el interés compuesto mensualmente y mostrando el camino óptimo hacia la libertad financiera.
 
-## Características Principales 🚀
-
-- **Proyecciones Precisas con Interés Compuesto**: Calcula exactamente cómo impactan las tasas (TEM + IVA + Sellos + IIBB) en tu capital si decides refinanciar o hacer pagos parciales.
-- **Control de Inyecciones Granulares ("Rescates")**: Asigna rescates de ahorros pasivos a deudas específicas (Visa, Mastercard, etc.) con selectores precisos, permitiendo apalancar múltiples tarjetas en el mismo mes.
-- **Límites de Presupuesto Dinámicos**: Los controles de pago de deuda están restringidos matemáticamente por el capital disponible (`Sueldo - Gastos Fijos - Gasto de Vida`).
-- **Vista de Flujo Mensual en Tiempo Real**: Visualizaciones con gráficos de torta dinámicos calculados vía CSS puro. Muestra qué porción del sueldo alimenta las deudas, sobrevive o se pierde.
-- **Motor Predictivo Oculto**: Si las proyecciones a 3-4 meses de la vista principal no alcanzan la meta de reducción de deuda, un algoritmo oculto simulará la estrategia elegida indefinidamente, advirtiéndote cuántos "Meses Extra" te faltan verdaderamente.
+- **Arquitectura Modular Única**: Código refactorizado para mantenibilidad, separando lógica de cálculo (`lib/calculations`), tipos (`lib/types`) y vistas de componentes.
+- **Parser Automático de Resúmenes (PDF/MD)**: Importación automática de gastos de MercadoPago mediante una API que procesa archivos PDF o Markdown normalizados, eliminando la carga manual.
+- **Simulador de Estrategias Reactivo**: Comparación instantánea entre 3 caminos: Tu Plan (personalizado), Hard Reset (pago con ahorros) y Sin Tocar Ahorros.
+- **Roadmap del Sueldo & Presupuesto Ocio**: Guía mes a mes que te indica exactamente cuánto destinar a deudas, cuánto a reconstruir tu ahorro y cuánto tienes disponible para ocio libre.
+- **Insights Inteligentes**: Sistema de notificaciones (popups) que te avisan en tiempo real el impacto de tus ajustes ("Si hacés esto, liquidás la deuda X meses antes").
+- **Visualización de Evolución Real**: Gráficos apilados que muestran cómo tu deuda se reduce físicamente mes a mes hasta convertirse en patrimonio neto.
 - **Responsive PWA**: Diseño _mobile-first_ ultra compacto utilizando `text-xs` y escalas ajustadas, con un Sidebar colapsable nativo.
 
 ## Stack Tecnológico 💻
