@@ -6,6 +6,7 @@ export type DebtItem = {
   id: string;
   name: string;
   amount: number;
+  consumption?: number; // Consumo del mes (new)
   type: 'card' | 'app';
   order: number;
 };
@@ -30,6 +31,15 @@ export type FinancialConstants = {
   IVA: number;
   SELLOS: number;
   IIBB: number;
+};
+
+export type MPCredit = {
+  id: number;
+  destino: string;
+  pendiente: number;
+  cuotaAbril: number;
+  cuotaMayo: number;
+  cuotaInfo: string; // e.g. "2 de 3"
 };
 
 // --- MercadoPago Parsed Data ---
@@ -126,6 +136,7 @@ export type SimMonth = {
   yieldEarned: number;
   netWorth: number;
   salaryToDebt: number;
+  salaryToConsumption: number;
   salaryToSavings: number;
   cushion: number;
 };

@@ -2,14 +2,14 @@
 // OMEGA Finance Dashboard — Constants & Config
 // ===============================================
 
-import type { InitialData, FinancialConstants } from './types';
+import type { InitialData, FinancialConstants, MPCredit } from './types';
 
 export const INITIAL_DATA: InitialData = {
   sueldo: 800000,
-  ahorro: 4909900 + 50000, // Ahorros + 50k débito
+  ahorro: 1650094, // Post-reset: pagó deudas $3.085.133 + MP $221.404
   deudas: [
-    { id: 'visa', name: 'Visa Gold', amount: 1516149.80, type: 'card', order: 2 },
-    { id: 'master', name: 'Mastercard Gold', amount: 1890708.24, type: 'card', order: 3 }
+    { id: 'visa', name: 'Visa Gold', amount: 132443.80, consumption: 132443.80, type: 'card', order: 2 },
+    { id: 'master', name: 'Mastercard Gold', amount: 189281.24, consumption: 189281.24, type: 'card', order: 3 }
   ],
   gastos: {
     expensas: 45000,
@@ -18,6 +18,20 @@ export const INITIAL_DATA: InitialData = {
     get fijosExtras() { return this.movistarMovil + this.movistarWifi; }
   }
 };
+
+export const MP_CREDITS: MPCredit[] = [
+  { id: 1,  destino: 'Ezequiel Rabo',        pendiente: 10703.52, cuotaAbril: 5351.76,  cuotaMayo: 5351.76,  cuotaInfo: '2 de 3' },
+  { id: 2,  destino: 'José Luis Avramo',      pendiente: 23785.60, cuotaAbril: 11892.80, cuotaMayo: 11892.80, cuotaInfo: '2 de 3' },
+  { id: 3,  destino: 'Jazmín Barcos Danni',   pendiente: 17386.85, cuotaAbril: 17386.85, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 4,  destino: 'Cobro MercadoPago',     pendiente: 21681.87, cuotaAbril: 21681.87, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 5,  destino: 'Préstamo Personal',     pendiente: 11432.11, cuotaAbril: 11432.11, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 6,  destino: 'Préstamo Personal',     pendiente: 2286.42,  cuotaAbril: 2286.42,  cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 7,  destino: 'Ian Franco Pontorno',   pendiente: 19068.76, cuotaAbril: 19068.76, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 8,  destino: 'SUBE',                  pendiente: 2270.51,  cuotaAbril: 2270.51,  cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 9,  destino: 'Ian Franco Pontorno',   pendiente: 12033.70, cuotaAbril: 12033.70, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 10, destino: 'Huadi Yan',             pendiente: 15498.50, cuotaAbril: 15498.50, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 11, destino: 'Préstamo Personal',     pendiente: 5636.48,  cuotaAbril: 5636.48,  cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+];
 
 export const CONSTANTS: FinancialConstants = {
   TEM_DEBT: 0.0709,

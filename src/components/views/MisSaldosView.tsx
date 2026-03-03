@@ -41,8 +41,8 @@ export function MisSaldosView({ pureInterestStart }: { pureInterestStart: number
           <div>
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h3 className="text-sm text-text-secondary uppercase tracking-wider font-semibold">Tus Pasivos (Deuda Total)</h3>
-                <div className="text-4xl font-bold text-white mt-1">{formatCurrency(totalDebt)}</div>
+                <h3 className="text-sm text-text-secondary uppercase tracking-wider font-semibold">Tus Pasivos (Total Resúmenes)</h3>
+                <div className="text-4xl font-bold text-white mt-1">{formatCurrency(INITIAL_DATA.deudas.reduce((acc, d) => acc + d.amount + (d.consumption || 0), 0))}</div>
               </div>
               <div className="bg-accent-salmon/10 text-accent-salmon px-3 py-1 rounded-full text-xs font-bold border border-accent-salmon/20 flex items-center gap-1">
                 <Activity size={12}/> Interés Promedio: {CONSTANTS.TEM_DEBT * 100}% TEM
@@ -55,7 +55,7 @@ export function MisSaldosView({ pureInterestStart }: { pureInterestStart: number
           <div className="flex items-center gap-3">
             <div className="flex-1 bg-card-bg-light h-2 rounded-full overflow-hidden flex">
               {INITIAL_DATA.deudas.map((d, i) => (
-                <div key={i} style={{width: `${(d.amount/totalDebt)*100}%`}} className={`h-full border-r border-dashboard-bg ${d.type === 'app' ? 'bg-accent-blue' : 'bg-red-400'}`}></div>
+                <div key={i} style={{width: `${((d.amount + (d.consumption || 0))/INITIAL_DATA.deudas.reduce((acc, d) => acc + d.amount + (d.consumption || 0), 0))*100}%`}} className={`h-full border-r border-dashboard-bg ${d.type === 'app' ? 'bg-accent-blue' : 'bg-red-400'}`}></div>
               ))}
             </div>
             <span className="text-xs text-text-secondary">Dos (2) Tarjetas</span>
@@ -66,12 +66,17 @@ export function MisSaldosView({ pureInterestStart }: { pureInterestStart: number
       <h3 className="text-sm uppercase tracking-wider font-semibold text-text-secondary mt-4">Detalle de Obligaciones</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 pb-4">
         {INITIAL_DATA.deudas.map(debt => {
-          const baseInt = debt.amount * CONSTANTS.TEM_DEBT;
+          const consumption = debt.consumption || 0;
+          const consolidatedDebt = debt.amount;
+          const totalToPay = consolidatedDebt + consumption;
+          
+          const baseInt = consolidatedDebt * CONSTANTS.TEM_DEBT;
           const iva = baseInt * CONSTANTS.IVA;
-          const iibb = debt.amount * CONSTANTS.IIBB;
+          const iibb = consolidatedDebt * CONSTANTS.IIBB;
           const subtotal = baseInt + iva + iibb;
-          const sellos = (debt.amount + subtotal) * CONSTANTS.SELLOS;
+          const sellos = (consolidatedDebt + subtotal) * CONSTANTS.SELLOS;
           const pureLoss = baseInt + iva + iibb + sellos;
+          
           return (
             <div key={debt.id} className="dashboard-card-light p-5 relative overflow-hidden group">
               <div className={`absolute top-0 left-0 w-1 h-full ${debt.type === 'app' ? 'bg-accent-blue' : 'bg-red-400'}`}></div>
@@ -82,14 +87,32 @@ export function MisSaldosView({ pureInterestStart }: { pureInterestStart: number
                 </div>
                 <span className="text-[10px] bg-dashboard-bg px-2 py-1 rounded text-text-tertiary">#ORDEN_{debt.order}</span>
               </div>
-              <div className="text-2xl font-bold mb-1">{formatCurrency(debt.amount)}</div>
+              
+              <div className="space-y-4">
+                <div>
+                  <div className="text-[10px] text-text-secondary uppercase mb-1">Total a Pagar (Resumen)</div>
+                  <div className="text-2xl font-bold">{formatCurrency(totalToPay)}</div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-dashboard-bg/50 p-3 rounded-xl border border-white/5">
+                    <p className="text-[10px] text-text-secondary mb-1">Deuda Consolidada</p>
+                    <p className="text-sm font-semibold text-white">{formatCurrency(consolidatedDebt)}</p>
+                  </div>
+                  <div className="bg-dashboard-bg/50 p-3 rounded-xl border border-white/5">
+                    <p className="text-[10px] text-text-secondary mb-1">Consumo del Mes</p>
+                    <p className="text-sm font-semibold text-accent-mint">{formatCurrency(consumption)}</p>
+                  </div>
+                </div>
+              </div>
+
               <div className="mt-6 space-y-2 text-xs border-t border-white/5 pt-4">
                 <div className="flex justify-between">
-                  <span className="text-text-tertiary">Interés (TEM 7.09%)</span>
+                  <span className="text-text-tertiary">Interés s/Deuda (TEM 7.09%)</span>
                   <span className="text-accent-salmon">+{formatCurrency(baseInt)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-text-tertiary">IVA s/int. + Sellos + IIBB</span>
+                  <span className="text-text-tertiary">IVA + Sellos + IIBB</span>
                   <span className="text-accent-salmon">+{formatCurrency(iva + sellos + iibb)}</span>
                 </div>
                 <div className="flex justify-between font-semibold border-t border-white/5 pt-2 mt-2">

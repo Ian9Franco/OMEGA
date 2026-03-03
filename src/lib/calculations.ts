@@ -114,12 +114,25 @@ export function runProjection(
     // 3. Salary Allocations
     let totalBankPaid = 0;
     for (const debt of currentDebts) {
-      if (debt.amount > 0) {
+      if (debt.amount > 0 || (i === 0 && (debt.consumption || 0) > 0)) {
         const minPayRequired = requiredMinPaymentsThisMonth[debt.id] || 0;
         let askedPayment = currentMonthAllocs[debt.id as keyof SalaryAllocation] || 0;
-        askedPayment = Math.max(askedPayment, Math.min(minPayRequired, debt.amount));
-        const actualPayment = Math.min(askedPayment, debt.amount);
-        debt.amount -= actualPayment;
+        
+        // Month 0 special: Add consumption to mandatory payment from salary
+        if (i === 0 && debt.consumption) {
+          askedPayment = Math.max(askedPayment, debt.consumption + minPayRequired);
+        } else {
+          askedPayment = Math.max(askedPayment, Math.min(minPayRequired, debt.amount));
+        }
+
+        const actualPayment = Math.min(askedPayment, debt.amount + (i === 0 ? (debt.consumption || 0) : 0));
+        
+        // Subtract from debt. amount first, then consumption if we really paid that much? 
+        // Actually consumption is already NOT in amount. So we just subtract the payment from the debt.
+        // If we paid more than debt, it means we covered consumption.
+        const payDownDebt = Math.min(actualPayment, debt.amount);
+        debt.amount -= payDownDebt;
+        
         totalBankPaid += actualPayment;
       }
     }
@@ -130,6 +143,9 @@ export function runProjection(
     const gastosFijosTotalesThisMonth = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras + currentMP + cuotasThisMonth;
     const totalAllocatedToBank = currentMonthAllocs.visa + currentMonthAllocs.master;
 
+    // Adjust leftReserve for Month 0 because we might have paid consumption
+    const totalMinimumsAndConsumption = Object.values(requiredMinPaymentsThisMonth).reduce((a, b) => a + b, 0) + (i === 0 ? currentDebts.reduce((a,d) => a + (d.consumption || 0), 0) : 0);
+    
     const leftoverReservedBudget = totalAllocatedToBank - totalBankPaid;
     if (leftoverReservedBudget > 0 && currentSelfDebt > 0) {
       pmtToSelf = Math.min(currentSelfDebt, leftoverReservedBudget);
@@ -249,7 +265,7 @@ function runGhostProjection(mercadoPagoGastos: number[]) {
   return { totalInterest: gTotalInterest, monthsTo5M: gMonths, finalSavings: gSavings };
 }
 
-// --- Simulador: Strategy A (pay with savings, salary → rebuild aggressively) ---
+// --- Simulador: Strategy A (pay DEBT with savings, CONSUMPTION with salary, rebuild aggressively) ---
 // Monthly cushion = 15% of surplus stays liquid for day-to-day life.
 // The rest goes straight to savings to hit $5M ASAP.
 export function runStrategyA(mpData: MPParsedData | null, mercadoPagoGastos: number[]): SimResult {
@@ -258,8 +274,13 @@ export function runStrategyA(mpData: MPParsedData | null, mercadoPagoGastos: num
   let totalInterest = 0;
   let totalYield = 0;
   const months: SimMonth[] = [];
-  const totalDebtNow = debts.reduce((a, b) => a + b.amount, 0);
-  const payoff = Math.min(totalDebtNow, savings);
+
+  // Calculate total consumption from cards (Month 0 only)
+  const totalConsumption = debts.reduce((a, d) => a + (d.consumption || 0), 0);
+
+  // Pay only CONSOLIDATED DEBT with savings (not consumption)
+  const totalDebtOnly = debts.reduce((a, b) => a + b.amount, 0);
+  const payoff = Math.min(totalDebtOnly, savings);
   savings -= payoff;
   let left = payoff;
   for (const d of debts) { const p = Math.min(left, d.amount); d.amount -= p; left -= p; }
@@ -275,7 +296,9 @@ export function runStrategyA(mpData: MPParsedData | null, mercadoPagoGastos: num
   for (let i = 0; i < 24; i++) {
     const mpEst = mercadoPagoGastos[Math.min(i, mercadoPagoGastos.length - 1)] || 221403;
     const cuotas = i < 2 ? cuotasMensuales : 0;
-    const fijos = fijosBase + mpEst + cuotas;
+    // Month 0: card consumption is a mandatory salary cost
+    const consumptionThisMonth = i === 0 ? totalConsumption : 0;
+    const fijos = fijosBase + mpEst + cuotas + consumptionThisMonth;
     const y = savings * TEM_SAVINGS; savings += y; totalYield += y;
     let intMonth = 0;
     for (const d of debts) {
@@ -299,7 +322,7 @@ export function runStrategyA(mpData: MPParsedData | null, mercadoPagoGastos: num
     savings += sTS;
     const td = debts.reduce((a, b) => a + b.amount, 0);
     if (monthsTo5M === -1 && savings >= 5000000) monthsTo5M = i + 1;
-    months.push({ month: i, label: `${monthNames[i % 12]} ${2026 + Math.floor((i + 2) / 12)}`, savings, debt: td, interestCharged: intMonth, yieldEarned: y, netWorth: savings - td, salaryToDebt: sTD, salaryToSavings: sTS, cushion });
+    months.push({ month: i, label: `${monthNames[i % 12]} ${2026 + Math.floor((i + 2) / 12)}`, savings, debt: td, interestCharged: intMonth, yieldEarned: y, netWorth: savings - td, salaryToDebt: sTD, salaryToConsumption: consumptionThisMonth, salaryToSavings: sTS, cushion });
   }
   if (monthsTo5M === -1) monthsTo5M = 24;
   return { months, totalInterest, totalYield, monthsTo5M };
@@ -345,7 +368,7 @@ export function runStrategyB(mpData: MPParsedData | null, mercadoPagoGastos: num
     savings += sTS;
     const td = debts.reduce((a, b) => a + b.amount, 0);
     if (monthsTo5M === -1 && savings >= 5000000 && td <= 0) monthsTo5M = i + 1;
-    months.push({ month: i, label: `${monthNames[i % 12]} ${2026 + Math.floor((i + 2) / 12)}`, savings, debt: td, interestCharged: intMonth, yieldEarned: y, netWorth: savings - td, salaryToDebt: sTD, salaryToSavings: sTS, cushion });
+    months.push({ month: i, label: `${monthNames[i % 12]} ${2026 + Math.floor((i + 2) / 12)}`, savings, debt: td, interestCharged: intMonth, yieldEarned: y, netWorth: savings - td, salaryToDebt: sTD, salaryToConsumption: 0, salaryToSavings: sTS, cushion });
   }
   if (monthsTo5M === -1) monthsTo5M = 24;
   return { months, totalInterest, totalYield, monthsTo5M };
@@ -371,13 +394,16 @@ export function computeOptimalHardReset(
   const availableSavings = Math.max(0, INITIAL_DATA.ahorro - safetyCushion);
   const visaDebt = INITIAL_DATA.deudas.find(d => d.id === 'visa')?.amount || 0;
   const masterDebt = INITIAL_DATA.deudas.find(d => d.id === 'master')?.amount || 0;
+  const visaCons = INITIAL_DATA.deudas.find(d => d.id === 'visa')?.consumption || 0;
+  const masterCons = INITIAL_DATA.deudas.find(d => d.id === 'master')?.consumption || 0;
+  
   const totalDebt = visaDebt + masterDebt;
 
-  // Pay as much as possible from savings in month 0
+  // Pay as much as possible FROM DEBT (not consumption) from savings in month 0
   const injectionMonth0 = Math.min(availableSavings, totalDebt);
   const debtFullyPaid = injectionMonth0 >= totalDebt;
 
-  // Distribute proportionally by debt size (pay bigger debt more)
+  // Distribute proportionally by debt size
   let visaPay0 = 0, masterPay0 = 0;
   if (totalDebt > 0) {
     visaPay0 = Math.min(visaDebt, injectionMonth0 * (visaDebt / totalDebt));
@@ -395,32 +421,31 @@ export function computeOptimalHardReset(
     { active: false, visa: 0, master: 0 }
   ];
 
-  // If debt is fully paid by savings → salary = 0 allocation, surplus goes to autoReconstruct
-  // If debt remains → salary surplus goes to remaining debt
+  // Allocations must NOW include Consumption + leftover debt
   let allocations: SalaryAllocation[];
 
-  if (debtFullyPaid) {
-    // No debt left → all salary surplus feeds autoReconstruct to rebuild $5M
+  const salarySurplus = Math.max(0, INITIAL_DATA.sueldo - monthlyLiving);
+  
+  // Month 0: Must cover consumption + remaining debt
+  const visaRemaining = Math.max(0, visaDebt - visaPay0);
+  const masterRemaining = Math.max(0, masterDebt - masterPay0);
+  
+  // Month 0 Allocations: Consumptions + any mandatory remaining debt if possible
+  const m0VisaAlloc = visaCons + Math.min(salarySurplus * (visaCons / (visaCons + masterCons || 1)), visaRemaining);
+  const m0MasterAlloc = masterCons + Math.min(salarySurplus - m0VisaAlloc, masterRemaining);
+
+  if (debtFullyPaid && (visaRemaining + masterRemaining) <= 0) {
     allocations = [
-      { visa: 0, master: 0 },
+      { visa: Math.round(visaCons), master: Math.round(masterCons) },
       { visa: 0, master: 0 },
       { visa: 0, master: 0 }
     ];
   } else {
-    const visaRemaining = Math.max(0, visaDebt - visaPay0);
-    const masterRemaining = Math.max(0, masterDebt - masterPay0);
-    const visaIntM1 = calcInterest(visaRemaining);
-    const masterIntM1 = calcInterest(masterRemaining);
-    const visaTotalM1 = visaRemaining + visaIntM1;
-    const masterTotalM1 = masterRemaining + masterIntM1;
-    const salarySurplus = Math.max(0, INITIAL_DATA.sueldo - monthlyLiving);
-    const totalRemaining = visaTotalM1 + masterTotalM1;
-    const visaAllocM1 = totalRemaining > 0 ? Math.min(visaTotalM1, salarySurplus * (visaTotalM1 / totalRemaining)) : 0;
-    const masterAllocM1 = totalRemaining > 0 ? Math.min(masterTotalM1, salarySurplus - visaAllocM1) : 0;
-
+    // If debt remains after M0, continue allocations for M1
     allocations = [
-      { visa: Math.round(Math.max(visaAllocM1, 0)), master: Math.round(Math.max(masterAllocM1, 0)) },
-      { visa: Math.round(Math.max(visaAllocM1, 0)), master: Math.round(Math.max(masterAllocM1, 0)) },
+      { visa: Math.round(m0VisaAlloc), master: Math.round(m0MasterAlloc) },
+      { visa: Math.round(Math.max(0, (visaRemaining + calcInterest(visaRemaining)) - (m0VisaAlloc - visaCons))), 
+        master: Math.round(Math.max(0, (masterRemaining + calcInterest(masterRemaining)) - (m0MasterAlloc - masterCons))) },
       { visa: 0, master: 0 }
     ];
   }
