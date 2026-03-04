@@ -121,7 +121,7 @@ export default function Home() {
     setAutoReconstruct(true);
 
     const totalPayoff = rescue[0].visa + rescue[0].master;
-    const monthlyLiving = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[0];
+    const monthlyLiving = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[0];
     const cushion = INITIAL_DATA.ahorro - totalPayoff;
     addInsights([getHardResetInsight(cushion, totalPayoff)]);
   };

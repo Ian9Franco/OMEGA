@@ -12,9 +12,10 @@ export type DebtItem = {
 };
 
 export type GastosConfig = {
-  expensas: number;
-  movistarMovil: number;
-  movistarWifi: number;
+  impuestos: number;
+  internet: number;
+  datosMoviles: number;
+  comida: number;
   readonly fijosExtras: number;
 };
 

@@ -50,21 +50,24 @@ export function GastosRealesView({ mpData }: { mpData: MPParsedData | null }) {
         <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4 flex items-center gap-2">
           <Landmark size={14} className="text-accent-blue" /> Obligaciones Fijas Mensuales
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-          <div className="dashboard-card-light p-3"><p className="text-[10px] text-text-secondary">Expensas</p><p className="text-xl font-bold text-white">{formatCurrency(INITIAL_DATA.gastos.expensas)}</p></div>
-          <div className="dashboard-card-light p-3"><p className="text-[10px] text-text-secondary flex items-center gap-1"><Phone size={8} /> Movistar Móvil</p><p className="text-xl font-bold text-white">{formatCurrency(INITIAL_DATA.gastos.movistarMovil)}</p></div>
-          <div className="dashboard-card-light p-3"><p className="text-[10px] text-text-secondary flex items-center gap-1"><Wifi size={8} /> Movistar WiFi</p><p className="text-xl font-bold text-white">{formatCurrency(INITIAL_DATA.gastos.movistarWifi)}</p></div>
-          <div className="dashboard-card-light p-3 bg-accent-salmon/5 border border-accent-salmon/20"><p className="text-[10px] text-accent-salmon">Total Fijos</p><p className="text-xl font-bold text-accent-salmon">{formatCurrency(INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras)}</p></div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
+          <div className="dashboard-card-light p-3"><p className="text-[10px] text-text-secondary">Impuestos</p><p className="text-xl font-bold text-white">{formatCurrency(INITIAL_DATA.gastos.impuestos)}</p></div>
+          <div className="dashboard-card-light p-3"><p className="text-[10px] text-text-secondary flex items-center gap-1"><Wifi size={8} /> Internet</p><p className="text-xl font-bold text-white">{formatCurrency(INITIAL_DATA.gastos.internet)}</p></div>
+          <div className="dashboard-card-light p-3"><p className="text-[10px] text-text-secondary flex items-center gap-1"><Phone size={8} /> Móvil</p><p className="text-xl font-bold text-white">{formatCurrency(INITIAL_DATA.gastos.datosMoviles)}</p></div>
+          <div className="dashboard-card-light p-3"><p className="text-[10px] text-text-secondary flex items-center gap-1"><ShoppingBag size={8} /> Comida</p><p className="text-xl font-bold text-white">{formatCurrency(INITIAL_DATA.gastos.comida)}</p></div>
+          <div className="dashboard-card-light p-3 bg-accent-salmon/5 border border-accent-salmon/20"><p className="text-[10px] text-accent-salmon">Total Fijos</p><p className="text-xl font-bold text-accent-salmon">{formatCurrency(INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras)}</p></div>
         </div>
         <div className="flex h-2 rounded-full overflow-hidden">
-          <div style={{width: `${(INITIAL_DATA.gastos.expensas / (INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras)) * 100}%`}} className="bg-accent-blue h-full"></div>
-          <div style={{width: `${(INITIAL_DATA.gastos.movistarMovil / (INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras)) * 100}%`}} className="bg-accent-mint h-full"></div>
-          <div style={{width: `${(INITIAL_DATA.gastos.movistarWifi / (INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras)) * 100}%`}} className="bg-purple-400 h-full"></div>
+          <div style={{width: `${(INITIAL_DATA.gastos.impuestos / (INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras)) * 100}%`}} className="bg-accent-blue h-full"></div>
+          <div style={{width: `${(INITIAL_DATA.gastos.internet / (INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras)) * 100}%`}} className="bg-purple-500 h-full"></div>
+          <div style={{width: `${(INITIAL_DATA.gastos.datosMoviles / (INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras)) * 100}%`}} className="bg-accent-mint h-full"></div>
+          <div style={{width: `${(INITIAL_DATA.gastos.comida / (INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras)) * 100}%`}} className="bg-accent-yellow h-full"></div>
         </div>
-        <div className="flex gap-4 mt-2 text-[9px] text-text-tertiary">
-          <span className="flex items-center gap-1"><div className="w-2 h-2 bg-accent-blue rounded-full"></div> Expensas ({((INITIAL_DATA.gastos.expensas / (INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras)) * 100).toFixed(0)}%)</span>
-          <span className="flex items-center gap-1"><div className="w-2 h-2 bg-accent-mint rounded-full"></div> Móvil ({((INITIAL_DATA.gastos.movistarMovil / (INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras)) * 100).toFixed(0)}%)</span>
-          <span className="flex items-center gap-1"><div className="w-2 h-2 bg-purple-400 rounded-full"></div> WiFi ({((INITIAL_DATA.gastos.movistarWifi / (INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras)) * 100).toFixed(0)}%)</span>
+        <div className="flex gap-4 mt-2 text-[9px] text-text-tertiary flex-wrap">
+          <span className="flex items-center gap-1"><div className="w-2 h-2 bg-accent-blue rounded-full"></div> Impuestos ({((INITIAL_DATA.gastos.impuestos / (INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras)) * 100).toFixed(0)}%)</span>
+          <span className="flex items-center gap-1"><div className="w-2 h-2 bg-purple-500 rounded-full"></div> Internet ({((INITIAL_DATA.gastos.internet / (INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras)) * 100).toFixed(0)}%)</span>
+          <span className="flex items-center gap-1"><div className="w-2 h-2 bg-accent-mint rounded-full"></div> Móvil ({((INITIAL_DATA.gastos.datosMoviles / (INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras)) * 100).toFixed(0)}%)</span>
+          <span className="flex items-center gap-1"><div className="w-2 h-2 bg-accent-yellow rounded-full"></div> Comida ({((INITIAL_DATA.gastos.comida / (INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras)) * 100).toFixed(0)}%)</span>
         </div>
       </div>
 

@@ -5,17 +5,18 @@
 import type { InitialData, FinancialConstants, MPCredit } from './types';
 
 export const INITIAL_DATA: InitialData = {
-  sueldo: 800000,
-  ahorro: 1650094, // Post-reset: pagó deudas $3.085.133 + MP $221.404
+  sueldo: 820733.63,
+  ahorro: 1651074, // Savings kept intact
   deudas: [
     { id: 'visa', name: 'Visa Gold', amount: 132443.80, consumption: 132443.80, type: 'card', order: 2 },
     { id: 'master', name: 'Mastercard Gold', amount: 189281.24, consumption: 189281.24, type: 'card', order: 3 }
   ],
   gastos: {
-    expensas: 45000,
-    movistarMovil: 10400,
-    movistarWifi: 36200,
-    get fijosExtras() { return this.movistarMovil + this.movistarWifi; }
+    impuestos: 55000,     // vence el 20 de cada mes
+    internet: 37899,      // vence el 14 de cada mes
+    datosMoviles: 12000,  // vence el 14 de cada mes
+    comida: 72000,        // ~$18k/semana × 4
+    get fijosExtras() { return this.internet + this.datosMoviles + this.comida; }
   }
 };
 

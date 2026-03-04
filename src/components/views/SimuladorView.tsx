@@ -24,7 +24,7 @@ export function SimuladorView({ mpData, mercadoPagoGastos, projection }: {
   const mpAbril = MP_CREDITS.reduce((a, c) => a + c.cuotaAbril, 0);
   const mpMayo = MP_CREDITS.reduce((a, c) => a + c.cuotaMayo, 0);
 
-  const fijosBase = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras;
+  const fijosBase = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras;
 
   // ========== Single projection: how savings grow from now ==========
   const projMonths: { label: string; savings: number; obligations: number; personal: number; toSavings: number }[] = [];
@@ -95,9 +95,9 @@ export function SimuladorView({ mpData, mercadoPagoGastos, projection }: {
         <h2 className="text-xl font-bold flex items-center gap-2 mb-4"><Wallet size={20} className="text-accent-blue" /> Qué tenés que pagar</h2>
 
         {/* MARZO */}
-        <div className="dashboard-card p-5 mb-4 border-l-4 border-l-accent-salmon">
+        <div className="dashboard-card p-5 mb-4 border-l-4 border-l-accent-blue">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-white flex items-center gap-2"><span className="bg-accent-salmon/20 text-accent-salmon px-2 py-0.5 rounded text-[10px] font-bold">URGENTE</span> Marzo 2026 — Vence 6 de marzo</h3>
+            <h3 className="font-bold text-white flex items-center gap-2"><span className="bg-accent-blue/20 text-accent-blue px-2 py-0.5 rounded text-[10px] font-bold">SUELDO DEPOSITADO</span> Marzo 2026</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -113,19 +113,24 @@ export function SimuladorView({ mpData, mercadoPagoGastos, projection }: {
                   <tr key={d.id} className="border-b border-white/5">
                     <td className="py-3 pl-2 font-medium text-white flex items-center gap-2"><CreditCard size={12} className="text-red-400" /> {d.name} (consumos del mes)</td>
                     <td className="py-3">{formatCurrency(d.consumption || 0)}</td>
-                    <td className="py-3 text-right pr-2"><span className="bg-accent-yellow/10 text-accent-yellow px-2 py-0.5 rounded text-[10px]">Ahorros → reponer con sueldo</span></td>
+                    <td className="py-3 text-right pr-2"><span className="bg-accent-blue/10 text-accent-blue px-2 py-0.5 rounded text-[10px]">Sueldo</span></td>
                   </tr>
                 ))}
+                <tr className="border-b border-white/5">
+                  <td className="py-3 pl-2 text-text-tertiary">Gastos fijos (impuestos + servicios + comida)</td>
+                  <td className="py-3">{formatCurrency(fijosBase)}</td>
+                  <td className="py-3 text-right pr-2"><span className="bg-accent-blue/10 text-accent-blue px-2 py-0.5 rounded text-[10px]">Sueldo</span></td>
+                </tr>
                 <tr className="border-t border-white/10 font-bold">
                   <td className="py-3 pl-2 text-white">Total Marzo</td>
-                  <td className="py-3 text-white">{formatCurrency(totalConsumption)}</td>
-                  <td className="py-3 text-right pr-2 text-[10px] text-text-tertiary">Cobrás sueldo entre el 5-10, reponés ahí</td>
+                  <td className="py-3 text-accent-salmon">{formatCurrency(totalConsumption + fijosBase)}</td>
+                  <td className="py-3 text-right pr-2 text-accent-mint font-semibold">Sobrante → ahorro: {formatCurrency(INITIAL_DATA.sueldo - totalConsumption - fijosBase)}</td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <div className="mt-3 bg-accent-yellow/10 border border-accent-yellow/20 rounded-lg p-3 text-[11px] text-text-secondary">
-            <strong className="text-accent-yellow">¿Cómo pagar si el sueldo llega después?</strong> Pagá los {formatCurrency(totalConsumption)} desde tus ahorros restantes ({formatCurrency(INITIAL_DATA.ahorro)}) y cuando te depositen el sueldo, devolvé esa plata a tus inversiones.
+          <div className="mt-3 bg-accent-mint/10 border border-accent-mint/20 rounded-lg p-3 text-[11px] text-accent-mint">
+            <strong>✅ Estrategia óptima:</strong> Pagás todo con sueldo ({formatCurrency(INITIAL_DATA.sueldo)}). Tus ahorros de {formatCurrency(INITIAL_DATA.ahorro)} quedan intactos generando rendimiento.
           </div>
         </div>
 
@@ -158,7 +163,7 @@ export function SimuladorView({ mpData, mercadoPagoGastos, projection }: {
                   <td className="py-2 text-right pr-2"><span className="bg-accent-blue/10 text-accent-blue px-2 py-0.5 rounded text-[10px]">Sueldo</span></td>
                 </tr>
                 <tr className="border-b border-white/5">
-                  <td className="py-2 pl-2 text-text-tertiary">Gastos fijos (expensas + servicios)</td>
+                  <td className="py-2 pl-2 text-text-tertiary">Gastos fijos (impuestos + servicios + comida)</td>
                   <td className="py-2">{formatCurrency(fijosBase)}</td>
                   <td className="py-2 text-right pr-2"><span className="bg-white/5 text-text-tertiary px-2 py-0.5 rounded text-[10px]">Sueldo</span></td>
                 </tr>

@@ -41,7 +41,7 @@ export function FlujoMensualView({ projectionData }: { projectionData: Projectio
               Obligación Vida Fija <span className="font-bold">{((currentFixedExps / totalSueldo)*100).toFixed(0)}%</span>
             </h4>
             <div className="text-xl font-bold text-accent-mint">{formatCurrency(currentFixedExps)}</div>
-            <p className="text-[10px] text-text-tertiary mt-2">Presupuesto en App MP y Vida (MP Estimado: {formatCurrency(month0.mercadoPagoGasto)}, Fijos: {formatCurrency(INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras)}).</p>
+            <p className="text-[10px] text-text-tertiary mt-2">Presupuesto en App MP y Vida (MP Estimado: {formatCurrency(month0.mercadoPagoGasto)}, Fijos: {formatCurrency(INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras)}).</p>
           </div>
           <div className={`dashboard-card-light p-4 border-l-2 md:col-span-2 ${isCrisis ? 'border-l-accent-salmon' : 'border-l-accent-yellow'}`}>
             <h4 className="text-xs text-text-secondary flex justify-between items-center mb-1">

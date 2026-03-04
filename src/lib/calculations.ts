@@ -140,7 +140,7 @@ export function runProjection(
     const currentTotalDebt = currentDebts.reduce((acc, d) => acc + d.amount, 0);
     const currentMP = i < 3 ? mercadoPagoGastos[i] : mercadoPagoGastos[2];
     const cuotasThisMonth = i < 2 ? cuotasMensuales : 0;
-    const gastosFijosTotalesThisMonth = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras + currentMP + cuotasThisMonth;
+    const gastosFijosTotalesThisMonth = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras + currentMP + cuotasThisMonth;
     const totalAllocatedToBank = currentMonthAllocs.visa + currentMonthAllocs.master;
 
     // Adjust leftReserve for Month 0 because we might have paid consumption
@@ -211,7 +211,7 @@ export function runProjection(
         simSavings += pToSelf;
       }
       if (autoReconstruct) {
-        const gFijos = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[2];
+        const gFijos = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[2];
         const surplusInSim = INITIAL_DATA.sueldo - gFijos - (sAllocs.visa + sAllocs.master);
         if (surplusInSim > 0) simSavings += surplusInSim;
       }
@@ -252,13 +252,13 @@ function runGhostProjection(mercadoPagoGastos: number[]) {
         const finalInt = calcInterest(d.amount);
         d.amount += finalInt;
         gTotalInterest += finalInt;
-        const maxPmt = INITIAL_DATA.sueldo - (INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[2]);
+        const maxPmt = INITIAL_DATA.sueldo - (INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[2]);
         d.amount -= Math.min(maxPmt, d.amount);
       }
     }
     const debits = gDebts.reduce((a, b) => a + b.amount, 0);
     if (debits === 0) {
-      const fijos = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[2];
+      const fijos = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[2];
       gSavings += (INITIAL_DATA.sueldo - fijos);
     }
   }
@@ -285,7 +285,7 @@ export function runStrategyA(mpData: MPParsedData | null, mercadoPagoGastos: num
   let left = payoff;
   for (const d of debts) { const p = Math.min(left, d.amount); d.amount -= p; left -= p; }
 
-  const fijosBase = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras;
+  const fijosBase = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras;
   const cuotasMensuales = mpData ? mpData.cuotasPendientes.reduce((a, c) => a + c.cuotaMensual, 0) : 0;
   let monthsTo5M = -1;
   const monthNames = ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic', 'Ene', 'Feb'];
@@ -335,7 +335,7 @@ export function runStrategyB(mpData: MPParsedData | null, mercadoPagoGastos: num
   let totalInterest = 0;
   let totalYield = 0;
   const months: SimMonth[] = [];
-  const fijosBase = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras;
+  const fijosBase = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras;
   const cuotasMensuales = mpData ? mpData.cuotasPendientes.reduce((a, c) => a + c.cuotaMensual, 0) : 0;
   let monthsTo5M = -1;
   const monthNames = ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic', 'Ene', 'Feb'];
@@ -387,7 +387,7 @@ export function computeOptimalHardReset(
     : 0;
 
   // Safety cushion = 1 month of living expenses
-  const monthlyLiving = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras
+  const monthlyLiving = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras
     + mercadoPagoGastos[0] + cuotasMensuales;
   const safetyCushion = monthlyLiving * 1.2; // 20% buffer over 1 month
 

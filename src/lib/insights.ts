@@ -88,7 +88,7 @@ export function getRescueInsights(
   savingsAfter: number
 ): InsightMessage[] {
   const insights: InsightMessage[] = [];
-  const monthlyLiving = INITIAL_DATA.gastos.expensas + INITIAL_DATA.gastos.fijosExtras + 221403;
+  const monthlyLiving = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras + 221403;
 
   if (amount > 0) {
     const interestAvoided = calcInterest(amount);
@@ -118,13 +118,14 @@ export function getHardResetInsight(cushion: number, totalPayoff: number): Insig
   );
 }
 
-// --- TEM ratio insight (one-time on load) ---
+// --- Savings growth insight (one-time on load) ---
 export function getRatioInsight(): InsightMessage {
-  const temDebtEffective = CONSTANTS.TEM_DEBT * (1 + CONSTANTS.IVA) + CONSTANTS.IIBB + CONSTANTS.SELLOS;
-  const ratio = temDebtEffective / TEM_SAVINGS;
-  return makeInsight('info',
-    '📐 Dato clave',
-    `Tu deuda cuesta ${ratio.toFixed(1)}x más de lo que rinden tus ahorros (${(temDebtEffective * 100).toFixed(1)}% vs ${(TEM_SAVINGS * 100).toFixed(2)}%). Cada peso en deuda pierde más que cada peso ahorrado.`,
+  const monthlyYield = INITIAL_DATA.ahorro * TEM_SAVINGS;
+  const fijos = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras;
+  const surplus = INITIAL_DATA.sueldo - fijos;
+  return makeInsight('success',
+    '💰 Tu plata trabaja para vos',
+    `Tus ahorros de ${formatCurrency(INITIAL_DATA.ahorro)} generan ${formatCurrency(monthlyYield)}/mes en rendimiento (${(TEM_SAVINGS * 100).toFixed(2)}% mensual). Con un sobrante de sueldo de ~${formatCurrency(surplus)}/mes, tus ahorros crecen rápido.`,
     8000
   );
 }
