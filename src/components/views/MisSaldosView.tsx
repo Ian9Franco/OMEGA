@@ -25,13 +25,17 @@ export function MisSaldosView({ pureInterestStart }: { pureInterestStart: number
               Capital actualmente invertido autogenerando rendimiento mensual previo al pago de cualquier obligación o inyección de capital en el plan de rescate.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="bg-card-bg-light p-3 rounded-xl border border-white/5">
-              <p className="text-[10px] text-text-secondary mb-1">Ganancia x Día Estimada</p>
+              <p className="text-[10px] text-text-secondary mb-1">Cuentas x Cobrar</p>
+              <p className="text-lg font-semibold text-accent-yellow">{formatCurrency(INITIAL_DATA.cuentasPorCobrar)}</p>
+            </div>
+            <div className="bg-card-bg-light p-3 rounded-xl border border-white/5">
+              <p className="text-[10px] text-text-secondary mb-1">Ganancia x Día</p>
               <p className="text-lg font-semibold text-accent-mint">+{formatCurrency((INITIAL_DATA.ahorro * TEM_SAVINGS) / 30)}</p>
             </div>
             <div className="bg-card-bg-light p-3 rounded-xl border border-white/5">
-              <p className="text-[10px] text-text-secondary mb-1">Rendimiento Base (Mes)</p>
+              <p className="text-[10px] text-text-secondary mb-1">Base x Mes</p>
               <p className="text-lg font-semibold text-accent-mint">+{formatCurrency(INITIAL_DATA.ahorro * TEM_SAVINGS)}</p>
             </div>
           </div>

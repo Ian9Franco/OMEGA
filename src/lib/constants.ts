@@ -6,32 +6,58 @@ import type { InitialData, FinancialConstants, MPCredit } from './types';
 
 export const INITIAL_DATA: InitialData = {
   sueldo: 820733.63,
-  ahorro: 1651074, // Savings kept intact
+  ahorro: 1200000,
+  cuentasPorCobrar: 750000,
   deudas: [
-    { id: 'visa', name: 'Visa Gold', amount: 132443.80, consumption: 132443.80, type: 'card', order: 2 },
-    { id: 'master', name: 'Mastercard Gold', amount: 189281.24, consumption: 189281.24, type: 'card', order: 3 }
+    { id: 'visa', name: 'Visa Gold', amount: 273063.23, consumption: 273063.23, type: 'card', order: 2 },
+    { id: 'master', name: 'Mastercard Gold', amount: 424183.12, consumption: 424183.12, type: 'card', order: 3 }
   ],
   gastos: {
     impuestos: 55000,     // vence el 20 de cada mes
     internet: 37899,      // vence el 14 de cada mes
     datosMoviles: 12000,  // vence el 14 de cada mes
     comida: 72000,        // ~$18k/semana × 4
+    cuotaAuricular: 20000,
     get fijosExtras() { return this.internet + this.datosMoviles + this.comida; }
   }
 };
 
+export const CUOTAS_TARJETAS_FUTURAS = [
+  0,          // Mes 0 (Abril): Ya está dentro de los saldos consolidados iniciales
+  299195.71,  // Mes 1 (Mayo)
+  216198.53,  // Mes 2 (Junio)
+  199265.20,  // Mes 3 (Julio)
+  186038.52,  // Mes 4 (Agosto)
+  186038.52,  // Mes 5 (Septiembre)
+  183333.25,  // Mes 6 (Octubre)
+  183333.25,  // Mes 7 (Noviembre)
+  183333.25,  // Mes 8 (Diciembre)
+  183333.25,  // Mes 9 (Enero 2027)
+  183333.25,  // Mes 10 (Febrero 2027)
+  183333.25,  // Mes 11 (Marzo 2027)
+  183333.25   // Mes 12 (Abril 2027)
+];
+
 export const MP_CREDITS: MPCredit[] = [
   { id: 1,  destino: 'Ezequiel Rabo',        pendiente: 10703.52, cuotaAbril: 5351.76,  cuotaMayo: 5351.76,  cuotaInfo: '2 de 3' },
-  { id: 2,  destino: 'José Luis Avramo',      pendiente: 23785.60, cuotaAbril: 11892.80, cuotaMayo: 11892.80, cuotaInfo: '2 de 3' },
-  { id: 3,  destino: 'Jazmín Barcos Danni',   pendiente: 17386.85, cuotaAbril: 17386.85, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
-  { id: 4,  destino: 'Cobro MercadoPago',     pendiente: 21681.87, cuotaAbril: 21681.87, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
-  { id: 5,  destino: 'Préstamo Personal',     pendiente: 11432.11, cuotaAbril: 11432.11, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
-  { id: 6,  destino: 'Préstamo Personal',     pendiente: 2286.42,  cuotaAbril: 2286.42,  cuotaMayo: 0,        cuotaInfo: '1 de 1' },
-  { id: 7,  destino: 'Ian Franco Pontorno',   pendiente: 19068.76, cuotaAbril: 19068.76, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
-  { id: 8,  destino: 'SUBE',                  pendiente: 2270.51,  cuotaAbril: 2270.51,  cuotaMayo: 0,        cuotaInfo: '1 de 1' },
-  { id: 9,  destino: 'Ian Franco Pontorno',   pendiente: 12033.70, cuotaAbril: 12033.70, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
-  { id: 10, destino: 'Huadi Yan',             pendiente: 15498.50, cuotaAbril: 15498.50, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
-  { id: 11, destino: 'Préstamo Personal',     pendiente: 5636.48,  cuotaAbril: 5636.48,  cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 2,  destino: 'José Luis Avramo',     pendiente: 23785.60, cuotaAbril: 11892.80, cuotaMayo: 11892.80, cuotaInfo: '2 de 3' },
+  { id: 3,  destino: 'Jazmín Barcos Danni',  pendiente: 17386.85, cuotaAbril: 17386.85, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 4,  destino: 'COBRO MERCADO PAGO',   pendiente: 21681.87, cuotaAbril: 21681.87, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 5,  destino: 'Préstamo personal',    pendiente: 11432.11, cuotaAbril: 11432.11, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 6,  destino: 'Préstamo personal',    pendiente: 2286.42,  cuotaAbril: 2286.42,  cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 7,  destino: 'Transferencia a Ian Franco Pontorno', pendiente: 19068.76, cuotaAbril: 19068.76, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 8,  destino: 'SUBE',                 pendiente: 2270.51,  cuotaAbril: 2270.51,  cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 9,  destino: 'Transferencia a Ian Franco Pontorno', pendiente: 12033.70, cuotaAbril: 12033.70, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 10, destino: 'Transferencia a HUADI YAN', pendiente: 15498.50, cuotaAbril: 15498.50, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 11, destino: 'Préstamo personal',    pendiente: 5636.48,  cuotaAbril: 5636.48,  cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 12, destino: 'Transferencia a HUADI YAN', pendiente: 21415.00, cuotaAbril: 21415.00, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 13, destino: 'Transferencia a HUADI YAN', pendiente: 5426.30,  cuotaAbril: 5426.30,  cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 14, destino: 'GRUPO KFC',            pendiente: 8520.75,  cuotaAbril: 8520.75,  cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 15, destino: 'Magdalena Cabrera',    pendiente: 13523.26, cuotaAbril: 13523.26, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 16, destino: 'Transferencia a HUADI YAN', pendiente: 23088.48, cuotaAbril: 23088.48, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 17, destino: 'default item',         pendiente: 6633.86,  cuotaAbril: 6633.86,  cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 18, destino: 'Transferencia a HUADI YAN', pendiente: 34691.82, cuotaAbril: 34691.82, cuotaMayo: 0,        cuotaInfo: '1 de 1' },
+  { id: 19, destino: 'Transferencia a HUADI YAN', pendiente: 9462.01,  cuotaAbril: 9462.01,  cuotaMayo: 0,        cuotaInfo: '1 de 1' }
 ];
 
 export const CONSTANTS: FinancialConstants = {
@@ -44,7 +70,7 @@ export const CONSTANTS: FinancialConstants = {
 
 export const TEM_SAVINGS = CONSTANTS.TNA_SAVINGS / 12;
 
-export const MONTH_LABELS = ["Marzo 2026", "Abril 2026", "Mayo 2026"];
+export const MONTH_LABELS = ["Abril 2026", "Mayo 2026", "Junio 2026"];
 
 export const CATEGORY_MAPPING: Record<string, { label: string; icon: string; tipo: 'necesario' | 'obligatorio' | 'discrecional' | 'variable' | 'ingreso' }> = {
   'sube': { label: 'Transporte (SUBE)', icon: 'bus', tipo: 'necesario' },

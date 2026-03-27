@@ -16,12 +16,14 @@ export type GastosConfig = {
   internet: number;
   datosMoviles: number;
   comida: number;
+  cuotaAuricular: number;
   readonly fijosExtras: number;
 };
 
 export type InitialData = {
   sueldo: number;
   ahorro: number;
+  cuentasPorCobrar: number;
   deudas: DebtItem[];
   gastos: GastosConfig;
 };

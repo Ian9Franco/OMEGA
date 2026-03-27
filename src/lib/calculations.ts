@@ -6,7 +6,7 @@ import type {
   DebtItem, SavingsRescue, SalaryAllocation,
   ProjectionMonth, ProjectionResult, SimMonth, SimResult, MPParsedData
 } from './types';
-import { INITIAL_DATA, CONSTANTS, TEM_SAVINGS, MONTH_LABELS } from './constants';
+import { INITIAL_DATA, CONSTANTS, TEM_SAVINGS, MONTH_LABELS, CUOTAS_TARJETAS_FUTURAS } from './constants';
 
 // --- Calculate full interest on a debt balance ---
 export function calcInterest(amount: number): number {
@@ -140,7 +140,9 @@ export function runProjection(
     const currentTotalDebt = currentDebts.reduce((acc, d) => acc + d.amount, 0);
     const currentMP = i < 3 ? mercadoPagoGastos[i] : mercadoPagoGastos[2];
     const cuotasThisMonth = i < 2 ? cuotasMensuales : 0;
-    const gastosFijosTotalesThisMonth = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras + currentMP + cuotasThisMonth;
+    const auricularThisMonth = (i >= 1 && i <= 6) ? INITIAL_DATA.gastos.cuotaAuricular : 0;
+    const cuotaTarjetaFutura = i < CUOTAS_TARJETAS_FUTURAS.length ? CUOTAS_TARJETAS_FUTURAS[i] : (i >= 6 && i <= 12 ? 183333.25 : 0);
+    const gastosFijosTotalesThisMonth = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras + currentMP + cuotasThisMonth + auricularThisMonth + cuotaTarjetaFutura;
     const totalAllocatedToBank = currentMonthAllocs.visa + currentMonthAllocs.master;
 
     // Adjust leftReserve for Month 0 because we might have paid consumption
@@ -211,7 +213,9 @@ export function runProjection(
         simSavings += pToSelf;
       }
       if (autoReconstruct) {
-        const gFijos = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[2];
+        const auricularInSim = (c >= 1 && c <= 6) ? INITIAL_DATA.gastos.cuotaAuricular : 0;
+        const cuotaTarjetaFuturaSim = c < CUOTAS_TARJETAS_FUTURAS.length ? CUOTAS_TARJETAS_FUTURAS[c] : (c >= 6 && c <= 12 ? 183333.25 : 0);
+        const gFijos = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[2] + auricularInSim + cuotaTarjetaFuturaSim;
         const surplusInSim = INITIAL_DATA.sueldo - gFijos - (sAllocs.visa + sAllocs.master);
         if (surplusInSim > 0) simSavings += surplusInSim;
       }
@@ -252,13 +256,17 @@ function runGhostProjection(mercadoPagoGastos: number[]) {
         const finalInt = calcInterest(d.amount);
         d.amount += finalInt;
         gTotalInterest += finalInt;
-        const maxPmt = INITIAL_DATA.sueldo - (INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[2]);
+        const auricularInGhost = (gMonths >= 1 && gMonths <= 6) ? INITIAL_DATA.gastos.cuotaAuricular : 0;
+        const cuotaTarjetaFuturaGhost = gMonths < CUOTAS_TARJETAS_FUTURAS.length ? CUOTAS_TARJETAS_FUTURAS[gMonths] : (gMonths >= 6 && gMonths <= 12 ? 183333.25 : 0);
+        const maxPmt = INITIAL_DATA.sueldo - (INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[2] + auricularInGhost + cuotaTarjetaFuturaGhost);
         d.amount -= Math.min(maxPmt, d.amount);
       }
     }
     const debits = gDebts.reduce((a, b) => a + b.amount, 0);
     if (debits === 0) {
-      const fijos = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[2];
+      const auricularInGhost = (gMonths >= 1 && gMonths <= 6) ? INITIAL_DATA.gastos.cuotaAuricular : 0;
+      const cuotaTarjetaFuturaGhost = gMonths < CUOTAS_TARJETAS_FUTURAS.length ? CUOTAS_TARJETAS_FUTURAS[gMonths] : (gMonths >= 6 && gMonths <= 12 ? 183333.25 : 0);
+      const fijos = INITIAL_DATA.gastos.impuestos + INITIAL_DATA.gastos.fijosExtras + mercadoPagoGastos[2] + auricularInGhost + cuotaTarjetaFuturaGhost;
       gSavings += (INITIAL_DATA.sueldo - fijos);
     }
   }
@@ -296,9 +304,11 @@ export function runStrategyA(mpData: MPParsedData | null, mercadoPagoGastos: num
   for (let i = 0; i < 24; i++) {
     const mpEst = mercadoPagoGastos[Math.min(i, mercadoPagoGastos.length - 1)] || 221403;
     const cuotas = i < 2 ? cuotasMensuales : 0;
+    const auricularThisMonth = (i >= 1 && i <= 6) ? INITIAL_DATA.gastos.cuotaAuricular : 0;
+    const cuotaTarjetaFuturaT = i < CUOTAS_TARJETAS_FUTURAS.length ? CUOTAS_TARJETAS_FUTURAS[i] : (i >= 6 && i <= 12 ? 183333.25 : 0);
     // Month 0: card consumption is a mandatory salary cost
     const consumptionThisMonth = i === 0 ? totalConsumption : 0;
-    const fijos = fijosBase + mpEst + cuotas + consumptionThisMonth;
+    const fijos = fijosBase + mpEst + cuotas + consumptionThisMonth + auricularThisMonth + cuotaTarjetaFuturaT;
     const y = savings * TEM_SAVINGS; savings += y; totalYield += y;
     let intMonth = 0;
     for (const d of debts) {
@@ -344,7 +354,9 @@ export function runStrategyB(mpData: MPParsedData | null, mercadoPagoGastos: num
   for (let i = 0; i < 24; i++) {
     const mpEst = mercadoPagoGastos[Math.min(i, mercadoPagoGastos.length - 1)] || 221403;
     const cuotas = i < 2 ? cuotasMensuales : 0;
-    const fijos = fijosBase + mpEst + cuotas;
+    const auricularThisMonth = (i >= 1 && i <= 6) ? INITIAL_DATA.gastos.cuotaAuricular : 0;
+    const cuotaTarjetaFuturaT = i < CUOTAS_TARJETAS_FUTURAS.length ? CUOTAS_TARJETAS_FUTURAS[i] : (i >= 6 && i <= 12 ? 183333.25 : 0);
+    const fijos = fijosBase + mpEst + cuotas + auricularThisMonth + cuotaTarjetaFuturaT;
     const y = savings * TEM_SAVINGS; savings += y; totalYield += y;
     let intMonth = 0;
     for (const d of debts) {

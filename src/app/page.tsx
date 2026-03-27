@@ -18,6 +18,7 @@ import { ProyeccionesView } from '@/components/views/ProyeccionesView';
 import { GastosRealesView } from '@/components/views/GastosRealesView';
 import { SimuladorView } from '@/components/views/SimuladorView';
 import { DashboardView } from '@/components/views/DashboardView';
+import { GastosEstrategiaView } from '@/components/views/GastosEstrategiaView';
 
 export default function Home() {
   // --- Navigation ---
@@ -137,6 +138,7 @@ export default function Home() {
   // --- View Router ---
   const renderActiveView = () => {
     switch (activeView) {
+      case 'estrategia': return <GastosEstrategiaView />;
       case 'saldos': return <MisSaldosView pureInterestStart={pureInterestStart} />;
       case 'flujo': return <FlujoMensualView projectionData={projection} />;
       case 'proyecciones': return <ProyeccionesView projectionData={projection} />;

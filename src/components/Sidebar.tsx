@@ -2,13 +2,14 @@
 import React from 'react';
 import {
   LayoutDashboard, WalletCards, ArrowRightLeft, PieChart,
-  BarChart3, Scale, Landmark, X, Menu
+  BarChart3, Scale, Landmark, X, Target
 } from 'lucide-react';
 
 type NavItem = { id: string; label: string; icon: React.ReactNode; color?: string };
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={16} />, color: 'text-accent-mint' },
+  { id: 'estrategia', label: 'Estrategia Mes', icon: <Target size={16} />, color: 'text-accent-yellow' },
   { id: 'saldos', label: 'Mis Saldos', icon: <WalletCards size={16} />, color: 'text-accent-mint' },
   { id: 'flujo', label: 'Flujo Mensual', icon: <ArrowRightLeft size={16} />, color: 'text-accent-mint' },
   { id: 'proyecciones', label: 'Proyecciones', icon: <PieChart size={16} />, color: 'text-accent-mint' },
